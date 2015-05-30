@@ -1,0 +1,208 @@
+<?php
+
+/**
+ * @file
+ * Prod module file.
+ */
+
+/**
+ * Define a custom autoloader if non declared, this prerequisite that the
+ * library lives under the same folder hierarchy than the composer package.
+ */
+if (!class_exists('Drupal\Prod\Db\AnalyzerInterface')) {
+  // No autoloader as detected our objects, so register a simple one
+  // This is a PHP >= 5.3 code, but it is required for this module.
+  spl_autoload_register(function($classname) { // PSR-4 autoloader
+    if (0 === strpos($classname, 'Drupal\\Prod\\')) {
+      $filename = dirname(__FILE__) 
+          . DIRECTORY_SEPARATOR 
+          . 'src' 
+          . DIRECTORY_SEPARATOR 
+          . 'Prod' 
+          . DIRECTORY_SEPARATOR 
+          . str_replace('\\', DIRECTORY_SEPARATOR, substr($classname, 12)) 
+          . '.php';
+        return (bool)require_once $filename;
+    }
+    return false;
+  });
+}
+
+
+/**
+ * Implements hook_menu().
+ */
+function prod_menu() {
+  return array();
+}
+
+/**
+ * Get the Prod backend.
+ *
+ * @return \Prod\BackendInterface
+ */
+function prod_backend_get($name = 'mysql') {
+  $backends = &drupal_static(__FUNCTION__, array());
+
+  if (!isset($backends[$name])) {
+    $conf = prod_backend_list();
+
+    if (!isset($conf[$name])) {
+      throw new InvalidArgumentException(sprintf("Backend '%s' does not exist", $name));
+    }
+
+    // First fetch configuration
+    if (isset($conf[$name]['class'])) {
+      $class = $conf[$name]['class'];
+
+      if (!class_exists($class)) {
+        throw new InvalidArgumentException(sprintf("Class '%s' does not exist", $class));
+      }
+    } else {
+      $class = APB_DEFAULT_CLASS;
+    }
+
+    // Check for options and set them if any.
+    if (isset($conf[$name]['options'])) {
+      $options = $conf[$name]['options'];
+    } else {
+      $options = null;
+    }
+
+    // Does a specific case for known backends.
+    switch ($class) {
+
+      case APB_DEFAULT_CLASS: 
+        if (isset($conf[$name]['target'])) {
+          $target = $conf[$name]['target'];
+        } else {
+          $target = 'default';
+        }
+        if (isset($conf[$name]['key'])) {
+          $key = $conf[$name]['key'];
+        } else {
+          $key = NULL;
+        }
+        $backend = new $class(Database::getConnection($target, $key));
+        break;
+
+      default:
+        $backend = new $class();
+        break;
+    }
+
+    if (null !== $options) {
+      $backend->setOptions($options);
+    }
+
+    $backends[$name] = $backend;
+  }
+
+  return $backends[$name];
+}
+
+/**
+ * Implements hook_cron().
+ * if elysia_cron is not present this will make a poor man's elysia_cron
+ */
+function prod_cron() {
+  // yes, it's FALSE by default because that may be quite heavy for your website
+  // the alternative method is to call the direct drush methods and register
+  // that in a custom cron. Or use elysia_cron, but even with elysia_cron
+  // you should use drush to call elysia
+  if (!module_exists('elysia_cron') && variable_get('allow_prod_asynchronous_task_via_classical_cron', FALSE)) {
+
+    if (variable_get('prod_fs_watch_enabled', TRUE)) {
+      module_load_include('inc', 'prod', 'prod_fs_watcher');
+      // this will only index a very little part of the filesystem
+      // you should'nt use the base cron, try elysia_cron instead
+      prod_filesystem_watcher_indexer();
+      prod_filesystem_watcher_cleaner();
+    }
+
+    if (variable_get('prod_stats_db_enabled', TRUE)) {
+      module_load_include('inc', 'prod', 'prod_stats_db');
+      prod_db_stats_indexer();
+    }
+
+    if (variable_get('prod_stats_drupal_enabled', TRUE)) {
+      module_load_include('inc', 'prod', 'prod_stats_drupal');
+      prod_drupal_stats_indexer();
+    }
+
+    prod_filesystem_watcher_report();
+
+  }
+}
+
+/**
+ * Implements elysia_cron's hook_cronapi()
+ */
+function prod_cronapi($op, $job = NULL) {
+
+  // Warning, that's some heavy stuff, call elysia via drush, please
+
+  if (variable_get('prod_fs_watch_enabled', TRUE)) {
+    $items['prod_filesystem_watcher_indexer'] = array(
+      'description' => 'Prod: Indexation of the filesystem, small parts at each run',
+      'rule' => '*/5 * * * *', // Every 5 minutes
+      'file' => 'prod_fs_watcher.inc'
+    );
+    $items['prod_filesystem_watcher_cleaner'] = array(
+      'description' => 'Prod: Clean deleted files from filesystem watcher',
+      'rule' => '09 04 * * *', // Every day at 04:09
+      'file' => 'prod_fs_watcher.inc'
+    );
+  }
+
+  if (variable_get('prod_stats_db_enabled', TRUE)) {
+    $items['prod_db_stats_indexer'] = array(
+      'description' => 'Prod: collect statistics on database',
+      'rule' => '0/10 * * * *', // Every 10 minutes
+      'file' => 'prod_stats_db.inc'
+    );
+  }
+
+  if (variable_get('prod_stats_drupal_enabled', TRUE)) {
+    $items['prod_drupal_stats_indexer'] = array(
+      'description' => 'Prod: collect statistics on Drupal objects',
+      'rule' => '0/15 * * * *', // Every 15 minutes
+      'file' => 'prod_stats_drupal.inc'
+    );
+  }
+
+  $items['prod_report'] = array(
+    'description' => 'Send the report',
+    'rule' => '07 03 * * *', // Every day at 03:07
+  );
+
+  return $items;
+}
+
+/**
+ * Drush wrappers
+ */
+function drush_prod_drupal_stats_indexer() {
+  module_load_include('inc', 'prod', 'prod_stats_drupal');
+  prod_drupal_stats_indexer();
+}
+function drush_prod_db_stats_indexer() {
+  module_load_include('inc', 'prod', 'prod_stats_db');
+  prod_db_stats_indexer();
+}
+function drush_prod_filesystem_watcher_cleaner() {
+  module_load_include('inc', 'prod', 'prod_fs_watcher');
+  prod_filesystem_watcher_cleaner();
+}
+function drush_prod_filesystem_watcher_indexer() {
+  module_load_include('inc', 'prod', 'prod_fs_watcher');
+  prod_filesystem_watcher_indexer();
+}
+
+
+/**
+ * Summary of findings
+ */
+function prod_report() {
+}
+

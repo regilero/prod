@@ -1,0 +1,536 @@
+<?php
+
+/**
+ * @file
+ * Prod module install file.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function prod_schema() {
+  $schema = array();
+
+  $schema['prod_filesystem'] = array(
+    'description' => "Filesystem watcher",
+    'fields' => array(
+      'pfs_id' => array(
+        'description' => "Internal int32 identifier",
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'pfs_name' => array(
+        'description' => "filename truncated at 255 characters",
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'pfs_name_crc32' => array(
+        'description' => "crc32 of full filename, before truncation",
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'pfs_content_crc32' => array(
+        'description' => "crc32 of the file content, signature",
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'pfs_parent' => array(
+        'description' => "relation to parent's id",
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ),
+      'pfs_type' => array(
+        'description' => "file, directory, symlink, etc",
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+      ),
+      'pfs_user' => array(
+        'description' => "POSIX's user numeric id",
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'pfs_group' => array(
+        'description' => "POSIX's group numeric id",
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'pfs_user_str' => array(
+        'description' => "POSIX's user string",
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+      'pfs_group_str' => array(
+        'description' => "POSIX's group string",
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+      'pfs_family' => array(
+        'description' => "file family, from extension, php, js, image, etc",
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => FALSE,
+      ),
+      'pfs_mime_type' => array(
+        'description' => "mime type of the file",
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ),
+      'pfs_size' => array(
+        'description' => "file size, or number of files for directories",
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'pfs_old_size' => array(
+        'description' => "previous file size, or number of files for directories",
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'pfs_created' => array(
+        'description' => "POSIX's Creation timestamp",
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pfs_modified' => array(
+        'description' => "POSIX's Modification timestamp",
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pfs_old_modified' => array(
+        'description' => "previous POSIX's Modification timestamp recorded",
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pfs_is_in_docroot' => array(
+        'description' => "Flag, file is in public document root",
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'pfs_is_in_private' => array(
+        'description' => "Flag, file is in private filesystem",
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pfs_is_in_files' => array(
+        'description' => "Flag, file is in a files subdirectory",
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pfs_is_in_modules' => array(
+        'description' => "Flag, file is in a modules subdirectory",
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pfs_is_in_libraries' => array(
+        'description' => "Flag, file is in a libraries subdirectory",
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pfs_is_new' => array(
+        'description' => "Flag, new record",
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'pfs_is_updated' => array(
+        'description' => "Flag, updated record",
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pfs_is_deleted' => array(
+        'description' => "Flag, deleted record",
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pfs_is_excluded' => array(
+        'description' => "Flag, exclusion node",
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pfs_message' => array(
+        'description' => "integer, bit addition of error messages",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'pfs_needs_update' => array(
+        'description' => "Flag, record needs some more analysis, usually while the module is working on it",
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+    ),
+    'primary key' => array('pfs_id'),
+    'unique keys' => array(
+      // file crc is + directory is the real identifier, name can be truncated.
+      'prod_fs_parent_namecrc_key' => array('pfs_parent','pfs_name_crc32'),
+    ),
+    'indexes' => array(
+      // search by type in a directory
+      'prod_fs_parent_type_idx' => array('pfs_parent', 'pfs_type'),
+      // search by file type
+      'prod_fs_mtype_idx' => array('pfs_family', 'pfs_mime_type'),
+      // search by modification
+      'prod_fs_modif_idx' => array('pfs_modified'),
+      // search by modification in a directory
+      'prod_fs_parent_modif_idx' => array('pfs_parent', 'pfs_modified'),
+      // changes!
+      'prod_fs_update_idx' => array('pfs_is_updated'),
+      // running
+      'prod_fs_needsupd_idx' => array('pfs_needs_update', 'pfs_parent'),
+      // clean up
+      'prod_fs_del_idx' => array('pfs_is_deleted'),
+      // errors
+      'prod_message_idx' => array('pfs_message'),
+    ),
+  );
+
+  $schema['prod_db_stats'] = array(
+    'description' => "Prod database statistic storage",
+    'fields' => array(
+      'pdb_id' => array(
+        'description' => "Internal int32 identifier",
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'pdb_identifier' => array(
+        'description' => "Database identifier for drupal",
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'pdb_db_name' => array(
+        'description' => "Database name",
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'pdb_table' => array(
+        'description' => "Database table name",
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'pdb_size' => array(
+        'description' => "Database table size, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'pdb_idx_size' => array(
+        'description' => "Database table's indexes size, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'pdb_full_size' => array(
+        'description' => "table size + idx size, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'pdb_nb_rows' => array(
+        'description' => "Number of rows for this table, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'pdb_timestamp' => array(
+        'description' => "modification time for this entry",
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'pdb_ugroup' => array(
+        'description' => "table's user group",
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+      ),
+      'pdb_is_database' => array(
+        'description' => "Flag, special aggregates records for whole database",
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pdb_enable' => array(
+        'description' => "Flag: Stats are enabled for this table",
+        'type' => 'int',
+        'size' => 'tiny',
+        'default' => 1,
+      ),
+    ),
+    'primary key' => array('pdb_id'),
+    'unique keys' => array(
+      // the real functional key is drupal's id + db name + table
+      'prod_db_stats_unique' => array('pdb_identifier','pdb_db_name', 'pdb_table','pdb_is_database'),
+    ),
+    'indexes' => array(
+      // searching records to batch
+      'prod_db_records_to_batch_idx' => array('pdb_enable','pdb_identifier','pdb_is_database','pdb_timestamp'),
+
+      // search the big records
+      'prod_db_statss_big_idx' => array('pdb_enable','pdb_is_database','pdb_full_size','pdb_idx_size','pdb_size','pdb_nb_rows'),
+      'prod_db_statss_idx_idx' => array('pdb_enable','pdb_is_database','pdb_idx_size'),
+      'prod_db_statss_size_idx' => array('pdb_enable','pdb_is_database','pdb_size'),
+      'prod_db_statss_rows_idx' => array('pdb_enable','pdb_is_database','pdb_nb_rows'),
+      // same, by user group
+      'prod_db_statss_gr_big_idx' => array('pdb_enable','pdb_is_database','pdb_ugroup','pdb_full_size','pdb_idx_size','pdb_size','pdb_nb_rows'),
+      'prod_db_statss_gr_idx_idx' => array('pdb_enable','pdb_is_database','pdb_ugroup','pdb_idx_size'),
+      'prod_db_statss_gr_size_idx' => array('pdb_enable','pdb_is_database','pdb_ugroup','pdb_size'),
+      'prod_db_statss_gr_rows_idx' => array('pdb_enable','pdb_is_database','pdb_ugroup','pdb_nb_rows'),
+    ),
+  );
+
+  $schema['prod_rrd_settings'] = array(
+    'description' => "Prod stats rrd definitions",
+    'fields' => array(
+      'prs_id' => array(
+        'description' => "Internal int32 identifier",
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'prs_stat_id' => array(
+        'description' => "related stat int32 identifier",
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'prs_stat_col' => array(
+        'description' => "related stat column, like the idx_size column for a prod_db_stats id",
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 64,
+      ),
+      'prs_last_timestamp' => array(
+        'description' => "last used timestamp",
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'prs_interval' => array(
+        'description' => "allowed interval, if more than 1.5 interval is spent we add missing points",
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'prs_points_per_graph' => array(
+        'description' => "Number of points in a graph (There are five graphs per rrd)",
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 300,
+      ),
+      'prs_points_per_aggregate' => array(
+        'description' => "Number of points used to create an aggregated point",
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 5,
+      ),
+      'prs_points_before_level_2' => array(
+        'description' => "Number of points before a level 2 aggregate is needed",
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+        'default' => 5,
+      ),
+      'prs_points_before_level_3' => array(
+        'description' => "Number of points before a level 3 aggregate is needed",
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+        'default' => 5,
+      ),
+      'prs_points_before_level_4' => array(
+        'description' => "Number of points before a level 4 aggregate is needed",
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+        'default' => 5,
+      ),
+      'prs_points_before_level_5' => array(
+        'description' => "Number of points before a level 5 aggregate is needed",
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+        'default' => 5,
+      ),
+    ),
+    'primary key' => array('prs_id'),
+    'unique keys' => array(
+      // provider/column is the real functionnal id
+      'pr_provider_column_idx' => array('prs_stat_id','prs_stat_col'),
+    ),
+  );
+
+  $schema['prod_rrd'] = array(
+    'description' => "Prod stats rrd storage, like with rrd tools, we can store a fixed amount of statistics points for any stat related id",
+    'fields' => array(
+      'prs_id' => array(
+        'description' => "related prod_rrd_setting int32 identifier",
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'pr_timestamp' => array(
+        'description' => "UNIX timestamp for this point",
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'pr_value' => array(
+        'description' => "The value, or average value for aggregates, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'pr_aggregate_level' => array(
+        'description' => "The round robin aggregate level for this point",
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'pr_rrd_index' => array(
+        'description' => "The round robin index, altered at each insertion of a new record",
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+      ),
+      'pr_value_max' => array(
+        'description' => "The max value if this point is an aggregate point, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'pr_value_min' => array(
+        'description' => "The min value if this point is an aggregate point, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'pr_is_missing' => array(
+        'description' => "Flag, this data entry was missing",
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('prs_id','pr_aggregate_level','pr_rrd_index'),
+    'indexes' => array(
+      'prod_rrd_is_missing' => array('pr_is_missing'),
+    ),
+  );
+
+  $schema['prod_drupal_stats'] = array(
+    'description' => "Prod Statistics about Drupal internals",
+    'fields' => array(
+      'pds_id' => array(
+        'description' => "Internal int32 identifier",
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'pds_name' => array(
+        'description' => "Statistic name",
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'pds_value' => array(
+        'description' => "The value, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'pds_is_1024' => array(
+        'description' => "The value is a 1024 based value, not 1000",
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pds_ugroup' => array(
+        'description' => "stat user group",
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('pds_id'),
+    'unique keys' => array(
+      'prod_stat_idx' => array('pds_name'),
+    ),
+    'indexes' => array(
+      'prod_stat_ugroup_idx' => array('pds_ugroup'),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_uninstall().
+ *
+ * Delete things.
+ */
+function prod_uninstall() {
+  variable_del('prod_stats_db_enabled');
+  variable_del('prod_stats_drupal_enabled');
+  variable_del('prod_stats_rrd_enabled');
+  variable_del('prod_stats_batch_limit');
+  variable_del('prod_fs_watch_batch_limit');
+  variable_del('prod_fs_watch_enabled');
+  variable_del('prod_fs_watch_indexer_records_per_run');
+  variable_del('prod_fs_watch_crc_enabled');
+  variable_del('prod_fs_watch_default_exclusion_list');
+  variable_del('prod_log_level');
+  if (db_table_exists('prod_filesystem')) {
+    db_drop_table('prod_filesystem');
+  }
+  if (db_table_exists('prod_db_stats')) {
+    db_drop_table('prod_db_stats');
+  }
+  if (db_table_exists('prod_rrd_settings')) {
+    db_drop_table('prod_rrd_settings');
+  }
+  if (db_table_exists('prod_rrd')) {
+    db_drop_table('prod_rrd');
+  }
+  if (db_table_exists('prod_drupal_stats')) {
+    db_drop_table('prod_drupal_stats');
+  }
+}
+

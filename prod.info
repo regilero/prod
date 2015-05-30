@@ -1,0 +1,25 @@
+name = "Prod"
+description = "Provides a usefull bunch of administrative tools"
+core = 7.x
+package = Prod
+php = 5.3
+
+files[] = src/Prod/Error/Exception.php
+files[] = src/Prod/Error/DevelopperException.php
+files[] = src/Prod/Error/DbAnalyzerException.php
+files[] = src/Prod/Error/InvalidRRDException.php
+files[] = src/Prod/Error/InvalidStatException.php
+files[] = src/Prod/Db/AbstractAnalyzer.php
+files[] = src/Prod/Db/AnalyzerFactory.php
+files[] = src/Prod/Db/AnalyzerInterface.php
+files[] = src/Prod/Db/AbstractTable.php
+files[] = src/Prod/Db/TableFactory.php
+files[] = src/Prod/Db/TableInterface.php
+files[] = src/Prod/Db/Mysql/Analyzer.php
+files[] = src/Prod/Db/Mysql/Table.php
+files[] = src/Prod/Stats/StatsProviderInterface.php
+files[] = src/Prod/Stats/StatInterface.php
+files[] = src/Prod/Stats/Stat.php
+files[] = src/Prod/Stats/Rrd/Manager.php
+files[] = src/Prod/Stats/Rrd/Definition.php
+
