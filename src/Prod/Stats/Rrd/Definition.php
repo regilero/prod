@@ -215,6 +215,15 @@ class Definition Extends ProdObject
         return  (isset($this->id));
     }
     
+    public function getProviderId()
+    {
+        return $this->stat_pid;
+    }
+
+    public function getColId()
+    {
+        return $this->stat_col;
+    }
     /**
      * Return a list of Drupal\Prod\Stats\Rrd\Definitions from the Database.
      * 
@@ -228,7 +237,7 @@ class Definition Extends ProdObject
        
         $results = db_select('prod_rrd_settings','s')
             ->fields('s')
-            ->condition('pr_stat_pid', $providers_ids, 'IN')
+            ->condition('prs_stat_pid', $providers_ids, 'IN')
             ->execute();
 
         $objects = array();
@@ -305,9 +314,11 @@ class Definition Extends ProdObject
      */
     public function manageRotation(StatInterface $stat) 
     {
+    
         if (!$this->hasId()) {
 
             // new definition, so new RRD record, simple case
+            $this->log->log('New definition, create default RRD records',NULL, WATCHDOG_DEBUG);
             return $this->_manageNewRecord($stat);
 
         }
@@ -328,6 +339,7 @@ class Definition Extends ProdObject
         
         if ($timestamp < $minimal_new_record) {
             // Not enough time elapsed!
+            $this->log->log('Interval too short, break early',NULL, WATCHDOG_DEBUG);
             return FALSE;
         }
 
@@ -344,16 +356,14 @@ class Definition Extends ProdObject
 
         //----------------------------------------------------------------------
         // Step 3 - Detect that we have no existing points for this record, yet
+        // or a last recorded point timestamp which is not the one we think
+        // or strange cases like existing points having timestamps in the
+        // future (like we have a database from another install, maybe)
         // So we have to fallback to new record creation
-        if ( !isset($this->last_entries)
-          || !isset($this->last_entries[1])
-          || !isset($this->last_entries[1][0])
-          || !isset($this->last_entries[1][0]['timestamp'])
-          || ($this->last_timestamp != $this->last_entries[1][0]['timestamp'])
-        ) {
-            // fallback to new record creation
-            return $this->_manageNewRecord($stat);
+        if ( $this->_detectProblems( $stat ) ) {
+            return FALSE;
         }
+        
         
         //----------------------------------------------------------------------
         // Step 4 - increment all rrd_index of previous records in database for
@@ -363,25 +373,114 @@ class Definition Extends ProdObject
 
         //----------------------------------------------------------------------
         // Step 5 - Add the new points in graphs that need one
-        $this->_createNewRRDEntries();
+        $this->_createNewRRDEntries( $stat );
 
         //----------------------------------------------------------------------
         // Step 6 - Remove uneeded points in all graph levels
-        // TODO
-
+        $this->_removeExtraPoints();
 
         // Finaly save all the things that should be saved
         $this->points->setRRDId($this->getId());
+        $this->log->log('Saving RRD points for ' .  $this->getId(),NULL, WATCHDOG_DEBUG);
         $this->points->save();
         $this->save();
         return TRUE;
 
     }
 
+    /**
+     * Remove bad records:
+     *  - record having timestamp greater than the provided one
+     *  - all 1st records
+     * @param int $present_timestamp
+     */
+    protected function _cleanup_bad_records( $present_timestamp )
+    {
+        $query = db_delete('prod_rrd')
+            ->condition('prs_id', $this->getId());
+        $orcond = db_or();
+        $orcond->condition('pr_rrd_index', 1);
+        $orcond->condition('pr_timestamp', $present_timestamp, '>');
+        $query->condition($orcond);
+        $query->execute();
+    }
+    
+    /**
+     * Remove points that should not exists anymore on graphs
+     *  (based on $this->points_per_graph)
+     */
+    protected function _removeExtraPoints()
+    {
+        $query = db_delete('prod_rrd')
+            ->condition('prs_id', $this->getId())
+            ->condition('pr_rrd_index', $this->points_per_graph, '>')
+            ->execute();
+    }
+    
+    protected function _detectProblems( $stat )
+    {
+        if ( !isset($this->last_entries[1][0])
+                || !isset($this->last_entries[2][0])
+                || !isset($this->last_entries[3][0])
+                || !isset($this->last_entries[4][0])
+                || !isset($this->last_entries[5][0])
+        ) {
+        
+            $this->_cleanup_bad_records( $this->last_timestamp );
+        
+            // fallback to new record creation
+            $this->log->log(
+                    'Missing data, fallback to create default RRD records for '
+                    . $this->getId(),
+                    NULL, WATCHDOG_DEBUG);
+            var_dump($this->last_entries);
+            return $this->_manageNewRecord($stat);
+        
+        }
+        
+        if ( ($this->last_timestamp < $this->last_entries[1][0]->getTimestamp())
+                || ($this->last_timestamp < $this->last_entries[2][0]->getTimestamp())
+                || ($this->last_timestamp < $this->last_entries[3][0]->getTimestamp())
+                || ($this->last_timestamp < $this->last_entries[4][0]->getTimestamp())
+                || ($this->last_timestamp < $this->last_entries[5][0]->getTimestamp())
+        ) {
+        
+            $this->log->log(
+                    'Strange data, we have records in the future for rrd '
+                    . $this->getId(),
+                    NULL, WATCHDOG_WARNING);
+        
+            $this->_cleanup_bad_records( $this->last_timestamp );
+        
+            // fallback to new record creation
+            $this->log->log(
+                    'fallback to create default RRD records for '
+                    . $this->getId(),
+                    NULL, WATCHDOG_DEBUG);
+            return $this->_manageNewRecord($stat);
+        
+        }
+        
+        if ($this->last_timestamp != $this->last_entries[1][0]->getTimestamp()) {
+        
+            $this->_cleanup_bad_records( $this->last_timestamp );
+        
+            // fallback to new record creation
+            $this->log->log(
+                    'Strange data, fallback to create default RRD records for '
+                    . $this->getId(),
+                    NULL, WATCHDOG_DEBUG);
+            return $this->_manageNewRecord($stat);
+        
+        }
+        
+        return FALSE;
+    }
+    
     protected function _manageNewRecord(StatInterface $stat)
     {
 
-        $this->log("Easy case, it's a new RRD record, we create 1 point for each of the 5 graphics.", NULL, WATCHDOG_DEBUG);
+        $this->log->log("Easy case, it's a new RRD record, we create 1 point for each of the 5 graphics.", NULL, WATCHDOG_DEBUG);
         $this->last_timestamp = $stat->getTimestamp();
 
         // Next points of the 4 last graphs will be after this number of elements added in level 1
@@ -418,8 +517,9 @@ class Definition Extends ProdObject
      * 
      * Note 1: this is done before computation of the new values for 
      *  $this->points_before_level
-     * Note 2: we always try to load the 1st point on the 1st graph level
-     *  to help detecting RRD definitions having no RRD points yet
+     * Note 2: we always try to load the 1st point on different graph level
+     *  to help detecting RRD definitions having no RRD points yet or having
+     *  strange points (like future values)
      *
      * @return array of last entries by aggregate level
      */
@@ -436,40 +536,45 @@ class Definition Extends ProdObject
             $this->last_entries[$level] = array();
 
             // we'll need to load point on that level if we reach
-            // the aggeragte limit, or always if we are in level 1
-            if ( (1===$level) ||
-              (1 == $this->points_before_level[ $level + 1 ])
-            ) {
+            // the aggregate limit
+            if (1 == $this->points_before_level[ $level + 1 ]) {
                 $max_level = $level;
             }
 
         }
 
-        if (max_level > 0) {
-        
-            $results = db_select('prod_rrd', 'r')
+        $query = db_select('prod_rrd', 'r')
               ->fields('r')
-              ->condition('prs_id', $this->getId())
-              ->condition('pr_aggregate_level', $max_level, '<=')
-              ->condition('pr_rrd_index', $this->points_per_aggregate, '<=')
-              ->orderBy('pr_aggregate_level', 'ASC')
-              ->orderBy('pr_rrd_index', 'ASC')
-              ->execute();
-            
-            foreach ($results as $result) {
+              ->condition('prs_id', $this->getId());
+        
+        // we will select all 1st points
+        // and all needed points on differents levels if any
+        $orcond = db_or();
+        $andcond1 = db_and();
+        $andcond1
+            ->condition('pr_aggregate_level', $max_level, '<=')
+            ->condition('pr_rrd_index', $this->points_per_aggregate, '<=');
+        
+        $orcond->condition($andcond1);
+        $orcond->condition('pr_rrd_index', 1, '=');
+        $query->condition($orcond)
+          ->orderBy('pr_aggregate_level', 'ASC')
+          ->orderBy('pr_rrd_index', 'ASC');
+        $results = $query->execute();
+        
+        foreach ($results as $result) {
 
-                $point = new Point(
-                                $result->pr_rrd_index,
-                                $result->pr_aggregate_level
-                );
-                $point->setValue($result->pr_value)
-                    ->setValueMax($result->pr_value_max)
-                    ->setValueMin($result->pr_value_min)
-                    ->setTimestamp($result->pr_timestamp);
+            $point = new Point(
+                            $result->pr_rrd_index,
+                            $result->pr_aggregate_level
+            );
+            $point->setValue($result->pr_value)
+                ->setValueMax($result->pr_value_max)
+                ->setValueMin($result->pr_value_min)
+                ->setTimestamp($result->pr_timestamp);
 
-                $this->last_entries[$level][$point->getIndex()-1] = $point;
+            $this->last_entries[$point->getAggregateLevel()][$point->getIndex()-1] = $point;
 
-            }
         }
 
         return $this->last_entries;
@@ -519,7 +624,8 @@ class Definition Extends ProdObject
             if ( $nb_points > 0 ) {
                 $query = db_update('prod_rrd')
                     ->condition('prs_id', $this->getId())
-                    ->expression('rrd_index', "rrd_index + " + $nb_points)
+                    ->condition('pr_aggregate_level', $level)
+                    ->expression('pr_rrd_index', "pr_rrd_index + " . $nb_points)
                     ->execute();
             }
         }
@@ -656,7 +762,7 @@ class Definition Extends ProdObject
                 ->execute();
             
             $result = db_select('prod_rrd_settings', 's')
-                ->fields('s', array('id'))
+                ->fields('s', array('prs_id'))
                 ->condition('prs_stat_pid', $this->stat_pid)
                 ->condition('prs_stat_col', $this->stat_col)
                 ->execute();

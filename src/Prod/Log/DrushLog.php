@@ -34,7 +34,15 @@ class DrushLog implements LogInterface
         {
           watchdog('Prod',$message, $args,$level);
           if (WATCHDOG_DEBUG === $level) {
-              drush_log($message, 'ok');
+              if (! is_null($args)) {
+                  $argstr = '';
+                  foreach ($args as $k => $v) {
+                      $argstr .= ', ' . $k . '=' . $v;
+                  }
+                  drush_log($message . $argstr, 'ok');
+              } else {
+                  drush_log($message, 'ok');
+              }
           }
         }
     }

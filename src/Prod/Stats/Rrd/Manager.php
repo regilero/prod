@@ -61,14 +61,20 @@ class Manager extends ProdObject
      */
     public function loadMultipleProviders($providers)
     {
-        $this->providers = $providers;
-        $this->definitions = array();
+        if (!isset($this->providers)) {
+            $this->providers = array();
+        }
+        if (!isset($this->definitions)) {
+            $this->definitions = array();
+        }
+        if (!isset($this->stats)) {
         $this->stats = array();
-
+        }
         if (!isset($this->providers_id_list)) {
             $this->providers_id_list = array();
         }
-        foreach($this->providers as $provider) {
+        
+        foreach($providers as $provider) {
 
             if (! $provider instanceOf StatsProviderInterface) {
                 throw new InvalidStatException(__METHOD__ . ' has received something which is not a StatsProviderInterface');
@@ -84,7 +90,8 @@ class Manager extends ProdObject
             if (! array_key_exists($id, $this->stats)) {
                 $this->stats[$id] = array();
             }
-
+            
+            $this->providers[$provider->getStatsProviderId()] = $provider;
         }
 
         // Try to preload all definitions we have for these providers
@@ -111,7 +118,7 @@ class Manager extends ProdObject
     }
 
     /**
-     * Store an RRD definition in the right place on our internal
+     * Store an RRD definition in the right place inside our internal
      *  storage.
      */
     protected function _storeRRDDef($rrdDef)
@@ -186,7 +193,10 @@ class Manager extends ProdObject
                 }
 
                 $rrdDef = $this->definitions[$stat_pid][$stat_col];
-                $this->log->log('RRD Rotation for %d/%d', array($stat_pid,$stat_col),WATCHDOG_DEBUG);
+                $this->log->log('RRD Rotation for :pid/:col', array(
+                        'pid' => $stat_pid,
+                        'col' => $stat_col
+                    ),WATCHDOG_DEBUG);
                 $rrdDef->manageRotation($stat);
                 // the rrdDef may be a very big object
                 // release it after usage

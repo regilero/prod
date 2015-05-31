@@ -76,9 +76,9 @@ class Point Extends ProdObject
             throw new InvalidRRDPointException('RRD Point index must be greater than 1.');
         }
         
-        $this->level = (int) $level;
+        $this->aggregate_level = (int) $level;
         
-        if ( ($this->level < 1) || ($this->level > 5)) {
+        if ( ($this->aggregate_level < 1) || ($this->aggregate_level > 5)) {
             throw new InvalidRRDPointException('RRD Point level cannot be anything but a number between 1 and 5.');
         }
 
@@ -111,9 +111,8 @@ class Point Extends ProdObject
      */
     public function setValue($value)
     {
-        // enforce int storage, decimals are managed by a * 100 on all ints
         // this one may be a float because of average computations
-        $this->value = (int) floor($value * 100);
+        $this->value = (int) floor($value);
         return $this;
     }
 
@@ -127,7 +126,7 @@ class Point Extends ProdObject
      */
     public function setValueMax($value)
     {
-        $this->max_value = (int) floor($value * 100);
+        $this->max_value = (int) floor($value);
         return $this;
     }
 
@@ -141,7 +140,7 @@ class Point Extends ProdObject
      */
     public function setValueMin($value)
     {
-        $this->min_value = (int) floor($value * 100);
+        $this->min_value = (int) floor($value);
         return $this;
     }
 
@@ -151,10 +150,7 @@ class Point Extends ProdObject
     }
     
     /**
-     * return the Point value. Note that decimal conversion is already applied
-     * So if you entered '25.56' the value is now '2556' and if you entered
-     * '1' the value is now '100'.
-     * 
+     * return the Point value.
      * @return number
      */
     public function getValue()
@@ -163,10 +159,7 @@ class Point Extends ProdObject
     }
     
     /**
-     * return the Point Max value. Note that decimal conversion is already applied
-     * So if you entered '25.56' the value is now '2556' and if you entered
-     * '1' the value is now '100'.
-     *
+     * return the Point Max value.
      * @return number
      */
     public function getMaxValue()
@@ -175,10 +168,7 @@ class Point Extends ProdObject
     }
     
     /**
-     * return the Point Min value. Note that decimal conversion is already applied
-     * So if you entered '25.56' the value is now '2556' and if you entered
-     * '1' the value is now '100'.
-     *
+     * return the Point Min value.
      * @return number
      */
     public function getMinValue()

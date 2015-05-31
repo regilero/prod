@@ -41,7 +41,8 @@ function prod_db_stats_indexer() {
     if (variable_get('prod_stats_rrd_enabled', FALSE)) {
 
         $rrd_manager = new Manager();
-        $rrd_manager->loadMultipleProviders($tables)
+        $rrd_manager
+          ->loadMultipleProviders($tables)
           ->manageRotations();
 
     }
