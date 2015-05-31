@@ -325,8 +325,8 @@ function prod_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
-      'prs_stat_id' => array(
-        'description' => "related stat int32 identifier",
+      'prs_stat_pid' => array(
+        'description' => "related stat provider int32 identifier",
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
@@ -391,7 +391,7 @@ function prod_schema() {
     'primary key' => array('prs_id'),
     'unique keys' => array(
       // provider/column is the real functionnal id
-      'pr_provider_column_idx' => array('prs_stat_id','prs_stat_col'),
+      'pr_provider_column_idx' => array('prs_stat_pid','prs_stat_col'),
     ),
   );
 
@@ -440,17 +440,11 @@ function prod_schema() {
         'size' => 'big',
         'not null' => FALSE,
       ),
-      'pr_is_missing' => array(
-        'description' => "Flag, this data entry was missing",
-        'type' => 'int',
-        'size' => 'tiny',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
     ),
     'primary key' => array('prs_id','pr_aggregate_level','pr_rrd_index'),
     'indexes' => array(
-      'prod_rrd_is_missing' => array('pr_is_missing'),
+       // For deletion
+      'prod_rrd_by_index_idx' => array('prs_id','pr_rrd_index'),
     ),
   );
 
