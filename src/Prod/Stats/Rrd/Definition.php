@@ -433,7 +433,6 @@ class Definition Extends ProdObject
                     'Missing data, fallback to create default RRD records for '
                     . $this->getId(),
                     NULL, WATCHDOG_DEBUG);
-            var_dump($this->last_entries);
             return $this->_manageNewRecord($stat);
         
         }
@@ -622,11 +621,24 @@ class Definition Extends ProdObject
         foreach( $this->new_points as $level => $nb_points ) {
 
             if ( $nb_points > 0 ) {
-                $query = db_update('prod_rrd')
-                    ->condition('prs_id', $this->getId())
-                    ->condition('pr_aggregate_level', $level)
-                    ->expression('pr_rrd_index', "pr_rrd_index + " . $nb_points)
-                    ->execute();
+                // We cannot use a db_update because of the order by.
+                // The order by pr_rrd_index DESC is there to avoid a duplicate
+                // key on unique index for MySQL while updating (no deffered
+                // index check).
+                // TODO: check that this query works on postgreSQL
+                $results = db_query("
+                    UPDATE {prod_rrd}
+                    SET pr_rrd_index=pr_rrd_index + :incr
+                    WHERE prs_id=:id
+                    AND pr_aggregate_level=:level
+                    ORDER BY prs_id ASC,
+                             pr_aggregate_level ASC,
+                             pr_rrd_index DESC
+                ", array(
+                    ':incr' => $nb_points,
+                    ':id' => $this->getId(),
+                    ':level' => $level
+                ));
             }
         }
     }

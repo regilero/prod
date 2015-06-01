@@ -194,8 +194,8 @@ class Manager extends ProdObject
 
                 $rrdDef = $this->definitions[$stat_pid][$stat_col];
                 $this->log->log('RRD Rotation for :pid/:col', array(
-                        'pid' => $stat_pid,
-                        'col' => $stat_col
+                        ':pid' => $stat_pid,
+                        ':col' => $stat_col
                     ),WATCHDOG_DEBUG);
                 $rrdDef->manageRotation($stat);
                 // the rrdDef may be a very big object
