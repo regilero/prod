@@ -592,30 +592,34 @@ abstract class AbstractTable extends ProdObject implements TableInterface, Stats
         $defaults =& drupal_static(__METHOD__);
 
         if (!isset($defaults)) {
-          $defaults = array(
-              'interval' => variable_get(
+            // get generic defaults
+            $defaults = array(
+                    'interval' => variable_get(
+                        'prod_default_rrd_interval',
+                        300
+                    ),
+                    'points_per_graph' => variable_get(
+                        'prod_default_rrd_points_per_graph',
+                        300
+                    ),
+                    'points_per_aggregate' => variable_get(
+                        'prod_default_rrd_points_per_aggregate',
+                        5
+                    ),
+            );
+            // check for db overrides
+            $defaults['interval'] = variable_get(
                   'prod_default_rrd_interval_db',
-                   variable_get(
-                     'prod_default_rrd_interval',
-                     300
-                  )
-              ),
-              'points_per_graph' => variable_get(
-                'prod_default_rrd_points_per_graph_db',
-                variable_get(
-                  'prod_default_rrd_points_per_graph',
-                  300
-                )
-              ),
-              'points_per_aggregate' => variable_get(
-                'prod_default_rrd_points_per_aggregate_db',
-                variable_get(
-                  'prod_default_rrd_points_per_aggregate',
-                  5
-                )
-              ),
-
-          );
+                   $defaults['interval']
+            );
+            $defaults['points_per_graph'] = variable_get(
+                  'prod_default_rrd_points_per_graph_db',
+                   $defaults['points_per_graph']
+            );
+            $defaults['points_per_aggregate'] = variable_get(
+                  'prod_default_rrd_points_per_aggregate_db',
+                   $defaults['points_per_aggregate']
+            );
         }
         return $defaults;
     }
