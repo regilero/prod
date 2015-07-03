@@ -170,7 +170,7 @@ class Definition Extends ProdObject
 
         $this->points = new PointCollection();
 
-        // load the helpers (like $this->log)
+        // load the helpers (like $this->logger)
         $this->initHelpers();
 
         return $this;
@@ -237,14 +237,14 @@ class Definition Extends ProdObject
        
         $results = db_select('prod_rrd_settings','s')
             ->fields('s')
-            ->condition('prs_stat_pid', $providers_ids, 'IN')
+            ->condition('ppq_stat_pid', $providers_ids, 'IN')
             ->execute();
 
         $objects = array();
 
         foreach ($results as $result) {
             $rrdDef = new Definition(
-                $result->prs_stat_pid,
+                $result->ppq_stat_pid,
                 $result->prs_stat_col,
                 $result->prs_interval,
                 $result->prs_points_per_aggregate,
@@ -318,7 +318,7 @@ class Definition Extends ProdObject
         if (!$this->hasId()) {
 
             // new definition, so new RRD record, simple case
-            $this->log->log('New definition, create default RRD records',NULL, WATCHDOG_DEBUG);
+            $this->logger->log('New definition, create default RRD records',NULL, WATCHDOG_DEBUG);
             return $this->_manageNewRecord($stat);
 
         }
@@ -339,7 +339,7 @@ class Definition Extends ProdObject
         
         if ($timestamp < $minimal_new_record) {
             // Not enough time elapsed!
-            $this->log->log('Interval too short, break early',NULL, WATCHDOG_DEBUG);
+            $this->logger->log('Interval too short, break early',NULL, WATCHDOG_DEBUG);
             return FALSE;
         }
 
@@ -381,7 +381,7 @@ class Definition Extends ProdObject
 
         // Finaly save all the things that should be saved
         $this->points->setRRDId($this->getId());
-        $this->log->log('Saving RRD points for ' .  $this->getId(),NULL, WATCHDOG_DEBUG);
+        $this->logger->log('Saving RRD points for ' .  $this->getId(),NULL, WATCHDOG_DEBUG);
         $this->points->save();
         $this->save();
         return TRUE;
@@ -429,7 +429,7 @@ class Definition Extends ProdObject
             $this->_cleanup_bad_records( $this->last_timestamp );
         
             // fallback to new record creation
-            $this->log->log(
+            $this->logger->log(
                     'Missing data, fallback to create default RRD records for '
                     . $this->getId(),
                     NULL, WATCHDOG_DEBUG);
@@ -444,7 +444,7 @@ class Definition Extends ProdObject
                 || ($this->last_timestamp < $this->last_entries[5][0]->getTimestamp())
         ) {
         
-            $this->log->log(
+            $this->logger->log(
                     'Strange data, we have records in the future for rrd '
                     . $this->getId(),
                     NULL, WATCHDOG_WARNING);
@@ -452,7 +452,7 @@ class Definition Extends ProdObject
             $this->_cleanup_bad_records( $this->last_timestamp );
         
             // fallback to new record creation
-            $this->log->log(
+            $this->logger->log(
                     'fallback to create default RRD records for '
                     . $this->getId(),
                     NULL, WATCHDOG_DEBUG);
@@ -465,7 +465,7 @@ class Definition Extends ProdObject
             $this->_cleanup_bad_records( $this->last_timestamp );
         
             // fallback to new record creation
-            $this->log->log(
+            $this->logger->log(
                     'Strange data, fallback to create default RRD records for '
                     . $this->getId(),
                     NULL, WATCHDOG_DEBUG);
@@ -479,7 +479,7 @@ class Definition Extends ProdObject
     protected function _manageNewRecord(StatInterface $stat)
     {
 
-        $this->log->log("Easy case, it's a new RRD record, we create 1 point for each of the 5 graphics.", NULL, WATCHDOG_DEBUG);
+        $this->logger->log("Easy case, it's a new RRD record, we create 1 point for each of the 5 graphics.", NULL, WATCHDOG_DEBUG);
         $this->last_timestamp = $stat->getTimestamp();
 
         // Next points of the 4 last graphs will be after this number of elements added in level 1
@@ -534,7 +534,7 @@ class Definition Extends ProdObject
 
             $this->last_entries[$level] = array();
 
-            // we'll need to load point on that level if we reach
+            // we'll need to load points on that level if we reach
             // the aggregate limit
             if (1 == $this->points_before_level[ $level + 1 ]) {
                 $max_level = $level;
@@ -546,6 +546,7 @@ class Definition Extends ProdObject
               ->fields('r')
               ->condition('prs_id', $this->getId());
         
+        // TODO: review: 1st point not needed?
         // we will select all 1st points
         // and all needed points on differents levels if any
         $orcond = db_or();
@@ -737,7 +738,7 @@ class Definition Extends ProdObject
                     'prs_id'  => $this->id,
             ))
             ->fields( array(
-                    'prs_stat_pid'  => $this->stat_pid,
+                    'ppq_stat_pid'  => $this->stat_pid,
                     'prs_stat_col' => $this->stat_col,
                     'prs_last_timestamp' => $this->last_timestamp,
                     'prs_interval' => $this->interval,
@@ -754,11 +755,12 @@ class Definition Extends ProdObject
           
         } else {
             
+            // New record
             // This should be an insert
             
             db_merge('prod_rrd_settings')
                 ->key( array(
-                    'prs_stat_pid'  => $this->stat_pid,
+                    'ppq_stat_pid'  => $this->stat_pid,
                     'prs_stat_col' => $this->stat_col,
                 ))
                 ->fields( array(
@@ -775,7 +777,7 @@ class Definition Extends ProdObject
             
             $result = db_select('prod_rrd_settings', 's')
                 ->fields('s', array('prs_id'))
-                ->condition('prs_stat_pid', $this->stat_pid)
+                ->condition('ppq_stat_pid', $this->stat_pid)
                 ->condition('prs_stat_col', $this->stat_col)
                 ->execute();
             foreach($result as $result) {

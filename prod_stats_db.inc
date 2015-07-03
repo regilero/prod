@@ -1,5 +1,6 @@
 <?php
-
+/** 
+ * DEPRECATED
 use Drupal\Prod\Db\AnalyzerFactory;
 use Drupal\Prod\Stats\Rrd\Manager;
 use Drupal\Prod\Log\LogFactory;
@@ -55,3 +56,4 @@ function prod_db_stats_indexer() {
 
 }
 
+*/

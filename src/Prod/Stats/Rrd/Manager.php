@@ -46,7 +46,7 @@ class Manager extends ProdObject
 
     public function __construct() {
 
-        // load the helpers (like $this->log)
+        // load the helpers (like $this->logger)
         $this->initHelpers();
 
     }
@@ -150,7 +150,7 @@ class Manager extends ProdObject
     }
 
     /**
-     * Create an RRD definition which was not laded by _preloadRrdDefinitions
+     * Create an RRD definition which was not loaded by _preloadRrdDefinitions
      * @param int $stat_pid
      * @param string $stat_col
      */
@@ -193,7 +193,7 @@ class Manager extends ProdObject
                 }
 
                 $rrdDef = $this->definitions[$stat_pid][$stat_col];
-                $this->log->log('RRD Rotation for :pid/:col', array(
+                $this->logger->log('RRD Rotation for :pid/:col', array(
                         ':pid' => $stat_pid,
                         ':col' => $stat_col
                     ),WATCHDOG_DEBUG);

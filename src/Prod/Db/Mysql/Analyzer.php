@@ -72,7 +72,7 @@ class Analyzer extends AbstractAnalyzer implements AnalyzerInterface
 
           $tables_list = $this->_getUntrackedTables($limit);
           $nb = count($tables_list);
-          $this->log->log(
+          $this->logger->log(
               'Extracting tables, found ' . $nb . ' new tables',
                NULL, WATCHDOG_DEBUG );
 
@@ -81,21 +81,21 @@ class Analyzer extends AbstractAnalyzer implements AnalyzerInterface
               if (0==$nb) $tables_list = array();
 
               $updates = $this->_getOldestTables( $limit - count($tables_list) );
-              $this->log->log(
+              $this->logger->log(
                 'Extracting tables, found '. count($updates) . ' existing tables needing updates',
                 NULL, WATCHDOG_DEBUG );
               $tables_list = array_merge( $tables_list, $updates );
 
               if (0==count($tables_list)) {
-                 $this->log->log(
-                   'iNothing to extract.',
+                 $this->logger->log(
+                   'Nothing to extract.',
                    NULL, WATCHDOG_DEBUG );
                 return array();
               }
           }
 
         } else {
-            $this->log->log('Extracting All tables',NULL,WATCHDOG_DEBUG);
+            $this->logger->log('Extracting All tables',NULL,WATCHDOG_DEBUG);
         }
 
         $query = " 
@@ -133,7 +133,7 @@ class Analyzer extends AbstractAnalyzer implements AnalyzerInterface
         $result = db_query( $query, $args, $options );
 
         $tables = $result->fetchAll();
-         $this->log->log(
+         $this->logger->log(
            'Extracting stats for :nb tables',
            array(':nb' => count($tables)),
            WATCHDOG_INFO

@@ -9,20 +9,23 @@ use Drupal\Prod\Error\InvalidStatException;
  */
 interface StatInterface
 {
+    
     /**
      * constructor of StatInterface object
      *
-     * @param int $stat_id Stat Provider id
+     * @param int $stat_pid Stat Provider id
      *
      * @param string $stat_col Stat Column key
      *
-     * @param int $value Value with two decimal added while still being an int
+     * @param float $value Value, three decimal are added and internal storage is an int
      *
      * @param int UNIX timestamp of this stat
      *
+     * @param string $label Stat Column Label
+     *
      * @return StatInterface
      */
-    public function __construct($stat_id, $stat_col, $value, $timestamp);
+    public function __construct($stat_pid, $stat_col, $value, $timestamp, $label='');
 
     /**
      * Get the stat Timestamp

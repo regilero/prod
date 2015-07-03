@@ -82,7 +82,7 @@ class Point Extends ProdObject
             throw new InvalidRRDPointException('RRD Point level cannot be anything but a number between 1 and 5.');
         }
 
-        // load the helpers (like $this->log)
+        // load the helpers (like $this->logger)
         $this->initHelpers();
 
         return $this;

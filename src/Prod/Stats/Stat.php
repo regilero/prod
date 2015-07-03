@@ -12,6 +12,7 @@ class Stat implements StatInterface
     private $stat_col;
     private $value;
     private $timestamp;
+    private $label;
 
     /**
      * constructor of StatInterface object
@@ -20,18 +21,22 @@ class Stat implements StatInterface
      *
      * @param string $stat_col Stat Column key
      *
-     * @param int $value Value with two decimal added while still being an int
+     * @param float $value Value, three decimal are added and internal storage is an int
      *
      * @param int UNIX timestamp of this stat
      *
+     * @param string $label Stat Column Label
+     *
      * @return StatInterface
      */
-    public function __construct($stat_pid, $stat_col, $value, $timestamp)
+    public function __construct($stat_pid, $stat_col, $value, $timestamp, $label='')
     {
         $this->stat_pid = (int) $stat_pid;
         $this->stat_col = $stat_col;
-        $this->value = (int) $value;
+        $this->value = (int) $value; //($value * 1000);
         $this->timestamp = (int) $timestamp;
+        $this->label = $label;
+        return $this;
     }
 
     /**
@@ -42,7 +47,7 @@ class Stat implements StatInterface
      */
     public function getId()
     {
-    	return $this->stat_id;
+        return $this->stat_id;
     }
     
     /**
@@ -59,7 +64,7 @@ class Stat implements StatInterface
     /**
      * Get the stat Value
      *
-     * @return int the Stat Value int '2-decimal-as-int' form
+     * @return int the Stat Value in '3-decimal-as-int' form
      * 
      */
     public function getValue()

@@ -39,9 +39,9 @@ class DrushLog implements LogInterface
                   foreach ($args as $k => $v) {
                       $argstr .= ', ' . $k . '=' . $v;
                   }
-                  drush_log($message . $argstr, 'ok');
+                  drush_log('[P] ' . $message . $argstr, 'ok');
               } else {
-                  drush_log($message, 'ok');
+                  drush_log('[P] ' . $message, 'ok');
               }
           }
         }

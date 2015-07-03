@@ -37,7 +37,7 @@ class PointCollection Extends ProdObject
     {
         $this->points = array();
 
-        // load the helpers (like $this->log)
+        // load the helpers (like $this->logger)
         $this->initHelpers();
 
         return $this;

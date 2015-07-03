@@ -325,7 +325,7 @@ function prod_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
-      'prs_stat_pid' => array(
+      'ppq_stat_pid' => array(
         'description' => "related stat provider int32 identifier",
         'type' => 'int',
         'unsigned' => TRUE,
@@ -391,7 +391,7 @@ function prod_schema() {
     'primary key' => array('prs_id'),
     'unique keys' => array(
       // provider/column is the real functionnal id
-      'pr_provider_column_idx' => array('prs_stat_pid','prs_stat_col'),
+      'pr_provider_column_idx' => array('ppq_stat_pid','prs_stat_col'),
     ),
   );
 
@@ -448,12 +448,66 @@ function prod_schema() {
     ),
   );
 
+  $schema['prod_stats_provider_queue'] = array(
+    'description' => "Prod Statistics providers Queue",
+    'fields' => array(
+      'ppq_stat_pid' => array(
+        'description' => "Internal int32 identifier",
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'ppq_module' => array(
+        'description' => "Stat provider module",
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'ppq_name' => array(
+        'description' => "Stat provider name, usually a function or method",
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'ppq_timestamp' => array(
+        'description' => "UNIX timestamp, next scheduled run",
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'ppq_is_internal' => array(
+        'description' => "Flag: this is managed by a prod internal module",
+        'type' => 'int',
+        'size' => 'tiny',
+        'default' => 1,
+      ),
+      'ppq_enable' => array(
+        'description' => "Flag: this Stat provider task is enabled",
+        'type' => 'int',
+        'size' => 'tiny',
+        'default' => 1,
+      ),
+    ),
+    'primary key' => array('ppq_stat_pid'),
+    'unique keys' => array(
+      'prod_queue_name_idx' => array('ppq_module','ppq_name'),
+    ),
+    'indexes' => array(
+      'prod_queue_order_idx' => array('ppq_enable','ppq_timestamp'),
+    ),
+  );
+  
   $schema['prod_drupal_stats'] = array(
     'description' => "Prod Statistics about Drupal internals",
     'fields' => array(
       'pds_id' => array(
         'description' => "Internal int32 identifier",
         'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'ppq_stat_pid' => array(
+        'description' => "related stat provider int32 identifier",
+        'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
@@ -482,6 +536,17 @@ function prod_schema() {
         'length' => 64,
         'not null' => FALSE,
       ),
+      'pds_timestamp' => array(
+        'description' => "UNIX timestamp",
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'pds_enable' => array(
+        'description' => "Flag: this Stat is enabled",
+        'type' => 'int',
+        'size' => 'tiny',
+        'default' => 1,
+      ),
     ),
     'primary key' => array('pds_id'),
     'unique keys' => array(
@@ -489,9 +554,13 @@ function prod_schema() {
     ),
     'indexes' => array(
       'prod_stat_ugroup_idx' => array('pds_ugroup'),
+      'prod_stat_by_ppq_id' => array('ppq_stat_pid'),
     ),
   );
 
+  $schema['cache_prod'] = drupal_get_schema_unprocessed('system', 'cache');
+  $schema['cache_prod']['description'] = 'Cache table for Prod module.';
+  
   return $schema;
 }
 
@@ -511,6 +580,7 @@ function prod_uninstall() {
   variable_del('prod_fs_watch_crc_enabled');
   variable_del('prod_fs_watch_default_exclusion_list');
   variable_del('prod_log_level');
+  
   if (db_table_exists('prod_filesystem')) {
     db_drop_table('prod_filesystem');
   }
@@ -525,6 +595,12 @@ function prod_uninstall() {
   }
   if (db_table_exists('prod_drupal_stats')) {
     db_drop_table('prod_drupal_stats');
+  }
+  if (db_table_exists('prod_drupal_stats')) {
+    db_drop_table('prod_drupal_stats');
+  }
+  if (db_table_exists('prod_stats_provider_queue')) {
+    db_drop_table('prod_stats_provider_queue');
   }
 }
 

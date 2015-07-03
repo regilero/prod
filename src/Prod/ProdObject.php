@@ -2,7 +2,6 @@
 
 namespace Drupal\Prod;
 
-use Drupal\Prod\ProdObject;
 use Drupal\Prod\Log\LogFactory;
 
 /**
@@ -15,7 +14,7 @@ class ProdObject
     /**
      * Log helper
      */
-    protected $log;
+    protected $logger;
 
     /**
      * Ensure all Helpers (log) are loaded into this object
@@ -23,7 +22,7 @@ class ProdObject
      */
     public function initHelpers()
     {
-        $this->log = LogFactory::get();
+        $this->logger = LogFactory::get();
 
         return $this;
     }

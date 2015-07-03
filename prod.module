@@ -121,10 +121,6 @@ function drush_prod_drupal_stats_indexer() {
   module_load_include('inc', 'prod', 'prod_stats_drupal');
   prod_drupal_stats_indexer();
 }
-function drush_prod_db_stats_indexer() {
-  module_load_include('inc', 'prod', 'prod_stats_db');
-  prod_db_stats_indexer();
-}
 function drush_prod_filesystem_watcher_cleaner() {
   module_load_include('inc', 'prod', 'prod_fs_watcher');
   prod_filesystem_watcher_cleaner();
@@ -132,6 +128,14 @@ function drush_prod_filesystem_watcher_cleaner() {
 function drush_prod_filesystem_watcher_indexer() {
   module_load_include('inc', 'prod', 'prod_fs_watcher');
   prod_filesystem_watcher_indexer();
+}
+function drush_prod_monitor() {
+  module_load_include('inc', 'prod', 'prod_monitoring');
+  prod_monitor();
+}
+function drush_prod_monitor_stats() {
+  module_load_include('inc', 'prod', 'prod_monitoring');
+  prod_monitor_stats();
 }
 
 

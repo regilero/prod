@@ -7,6 +7,7 @@ use Drupal\Prod\Error\DevelopperException;
 use Drupal\Prod\Stats\StatsProviderInterface;
 use Drupal\Prod\Stats\Stat;
 use Drupal\Prod\ProdObject;
+use Drupal\Prod\Stats\Task;
 
 /**
  * Common base implementation for most backends
@@ -401,15 +402,13 @@ abstract class AbstractTable extends ProdObject implements TableInterface, Stats
      * This function is also responsible for feeding the
      * object with the database id (setId())
      *
-     * @param int $size The size
-     *
      * @return TableInterface
      * 
      * @throws Drupal\Prod\Error\DbAnalyzerException
      */
     public function save()
     {
-        $this->log->log('Saving record for table ' .  $this->getTable(),NULL, WATCHDOG_DEBUG);
+        $this->logger->log('Saving record for table ' .  $this->getTable(),NULL, WATCHDOG_DEBUG);
 
         // Upsert the record
         try {
@@ -525,31 +524,31 @@ abstract class AbstractTable extends ProdObject implements TableInterface, Stats
         if (!isset($this->id)) {
             throw new DevelopperException('Cannot create stats elements before having a real record id, maybe save this object before?');
         }
-        // Note that Stats counter needs the 'decimal-as-int' form, so * 100
+        
         $stat_size = new Stat(
             $this->id,
             'size',
-            $this->getSize() * 100,
+            $this->getSize(),
             $this->getTimestamp()
         );
 
         $stat_index_size = new Stat(
             $this->id,
             'idx_size',
-            $this->getIndexSize() * 100,
+            $this->getIndexSize(),
             $this->getTimestamp()
         );
 
         $stat_total_size = new Stat(
             $this->id,
             'full_size',
-            $this->getTotalSize() * 100,
+            $this->getTotalSize(),
             $this->getTimestamp()
         );
         $stat_rows = new Stat(
             $this->id,
             'nb_rows',
-            $this->getRows() * 100,
+            $this->getRows(),
             $this->getTimestamp()
         );
 

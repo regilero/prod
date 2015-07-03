@@ -5,6 +5,7 @@ namespace Drupal\Prod\Db;
 use Drupal\Prod\ProdObject;
 use Drupal\Prod\Error\DevelopperException;
 use Drupal\Prod\Error\DbAnalyzerException;
+use Drupal\Prod\Stats\TaskInterface;
 
 /**
  * Common base implementation for most backends
@@ -47,10 +48,9 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
      */
     private $tables;
 
-
     public function __construct()
     {
-        // Initialize helpers (like $this->log)
+        // Initialize helpers (like $this->logger)
         $this->initHelpers();
         return $this;
     }
@@ -67,7 +67,6 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
         }
         return $this->db_name;
     }
-
 
     public function setDbIdentifier($name)
     {
@@ -163,6 +162,7 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
             ->condition('pdb_is_database', 0)
             ->condition('pdb_enable', 1)
             ->orderBy('pdb_timestamp', 'ASC')
+            ->orderBy('pdb_db_name', 'ASC')
             ->range(0,$limit);
 
         $prefix = $this->getDbPrefix();
@@ -192,7 +192,7 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
     public function ManageDbRecord()
     {
 
-        $this->log->log('Adding Database Record For Database ' . $this->getDbName(), NULL, WATCHDOG_DEBUG);
+        $this->logger->log('Adding Database Record For Database ' . $this->getDbName(), NULL, WATCHDOG_DEBUG);
 
         $sumTable = TableFactory::get(
           $this->getDbDriver(),
@@ -240,5 +240,23 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
 
         return $sumTable;
 
+    }
+    
+    /**
+     * Internally set the next scheduling time
+     */
+    public function scheduleNextRun()
+    {
+        if (is_null($this->timestamp)) {
+    
+            // new record, schedule right now
+            $this->setScheduling(REQUEST_TIME);
+    
+        } else {
+            $this->setScheduling(
+                    REQUEST_TIME
+                    + variable_get('prod_default_rrd_interval', 300)
+            );
+        }
     }
 }
