@@ -13,7 +13,12 @@ use Drupal\Prod\Error\InvalidRRDPointException;
  */
 class Point Extends ProdObject
 {
-
+    /**
+     * TRUE for new points, FALSE for updated points
+     * boolean
+     */
+    protected $is_new = TRUE;
+    
     /**
      * Point value
      *
@@ -186,4 +191,13 @@ class Point Extends ProdObject
         return $this->aggregate_level;
     }
     
+    public function isNew()
+    {
+        return $this->is_new;
+    }
+    
+    public function flagNew($bool)
+    {
+        $this->is_new = (int) $bool;
+    }
 }

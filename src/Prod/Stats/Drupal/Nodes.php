@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\Prod\Stats;
+namespace Drupal\Prod\Stats\Drupal;
 
 use Drupal\Prod\Stats\StatsProviderInterface;
 use Drupal\Prod\ProdObserverInterface;
@@ -8,14 +8,15 @@ use Drupal\Prod\ProdObservable;
 use Drupal\Prod\ProdObject;
 use Drupal\Prod\Monitoring\Cacti;
 use Drupal\Prod\Stats\TaskInterface;
-use Drupal\Prod\Stats\Task;
+use Drupal\Prod\Stats\Drupal\DrupalTask;
 use Drupal\Prod\Stats\Queue;
+use Drupal\Prod\Stats\Stat;
 use Drupal\Prod\Error\StatTaskException;
 use Drupal\Prod\Error\DevelopperException;
 
 /**
  */
-class Nodes extends Task implements TaskInterface, StatsProviderInterface, ProdObserverInterface
+class Nodes extends DrupalTask implements TaskInterface, StatsProviderInterface, ProdObserverInterface
 {
 
     /**
@@ -27,7 +28,7 @@ class Nodes extends Task implements TaskInterface, StatsProviderInterface, ProdO
     // Stat provider id. This comes from Task
     protected $id;
     
-    protected $task_module='Drupal\\Prod\\Stats\\Nodes';
+    protected $task_module='Drupal\\Prod\\Stats\\Drupal\\Nodes';
     // running task collector function
     protected $task_name='collect';
 
@@ -80,64 +81,7 @@ class Nodes extends Task implements TaskInterface, StatsProviderInterface, ProdO
         return $this;
     }
     
-    /**
-     * Receive and handle a signal from an Observable object that we registered.
-     *
-     * @param ProdObservable $sender Sender of the signal (Obervable)
-     *
-     * @param int $signal one of the signal defined as consts in ProdObservable
-     * 
-     * @param string $info optional information associated with the signal
-     */
-    public function signal(ProdObservable $sender, $signal, $info=null)
-    {
-        switch ($signal) {
-            case ProdObservable::SIGNAL_MONITOR_SUMMARY:
-              $this->_buildMonitorSummaryLines($sender);
-              break;
-            case ProdObservable::SIGNAL_STAT_TASK_INFO:
-              $this->_registerTasksInQueue($sender);
-              break;
-        }
-        
-    }
-    
-    protected function _registerTasksInQueue(Queue $queue)
-    {
-        // We are just one task, so use simple add-me-to-the-queue mode
-        // This will ensure we'll get a call for first and next scheduling
-        // and also this will CREATE our Stat provider ID! which is the id
-        // in the db queue.
-        $this->flagEnabled(TRUE);
-        $this->flagInternal(TRUE);
-        $queue->queueTask($this);
-    }
 
-    protected function _buildMonitorSummaryLines(Cacti $sender)
-    {
-
-        $this->logger->log("User.".__METHOD__, NULL, WATCHDOG_DEBUG);
-        
-        if ($this->_loadId()) {
-            
-            $stats = $this->getStatsList();
-
-            foreach($stats as $key => $stat) {
-
-                // That's a final end user input, apply formatter
-                $line = $key . '=' . floor($stat->getValue()/1000);
-                $sender->AddOutputLine($line);
-                
-            }
-            
-        } else {
-            
-            $this->logger->log("Nodes; no metrics available yet", NULL, WATCHDOG_DEBUG);
-            
-        }
-    }
-    
-    
     /**
      * This is the function called when we need to recompute the stats
      */
@@ -206,8 +150,8 @@ class Nodes extends Task implements TaskInterface, StatsProviderInterface, ProdO
         }
         
         foreach ($this->nodes_types as $type => $infos) {
-            $this->logger->log('Nodes.' . $type . 'total: ' . $infos['total'], NULL, WATCHDOG_DEBUG);
-            $this->logger->log('Nodes.' . $type . 'published: ' . $infos['published'], NULL, WATCHDOG_DEBUG);
+            $this->logger->log('Nodes.' . $type . '.total: ' . $infos['total'], NULL, WATCHDOG_DEBUG);
+            $this->logger->log('Nodes.' . $type . '.published: ' . $infos['published'], NULL, WATCHDOG_DEBUG);
             $this->nodes_types[$type]['total'] = $this->nodes_types[$type]['total'] * 1000;
             $this->nodes_types[$type]['published'] = $this->nodes_types[$type]['published'] * 1000; 
         }
@@ -215,6 +159,8 @@ class Nodes extends Task implements TaskInterface, StatsProviderInterface, ProdO
         $this->setTotalNodes($total * 1000);
         $this->setOnlineNodes($online * 1000);
         $this->save();
+        
+        $this->manageRRD();
     }
     
 
@@ -278,7 +224,7 @@ class Nodes extends Task implements TaskInterface, StatsProviderInterface, ProdO
         try {
             db_merge('prod_drupal_stats')
               -> key( array(
-                  'ppq_stat_pid' => $this->getId(),
+                  'ptq_stat_tid' => $this->getId(),
                   'pds_name' => 'node_total',
               ) )
               -> fields( array(
@@ -291,7 +237,7 @@ class Nodes extends Task implements TaskInterface, StatsProviderInterface, ProdO
             
             db_merge('prod_drupal_stats')
               -> key( array(
-                  'ppq_stat_pid' => $this->getId(),
+                  'ptq_stat_tid' => $this->getId(),
                   'pds_name' => 'node_published',
               ) )
               -> fields( array(
@@ -305,7 +251,7 @@ class Nodes extends Task implements TaskInterface, StatsProviderInterface, ProdO
               foreach ($this->nodes_types as $type => $infos) {
                   db_merge('prod_drupal_stats')
                     -> key( array(
-                        'ppq_stat_pid' => $this->getId(),
+                        'ptq_stat_tid' => $this->getId(),
                         'pds_name' => 'node_' . $type . '_total',
                     ) )
                     -> fields( array(
@@ -317,7 +263,7 @@ class Nodes extends Task implements TaskInterface, StatsProviderInterface, ProdO
                     ->execute();
                   db_merge('prod_drupal_stats')
                     -> key( array(
-                        'ppq_stat_pid' => $this->getId(),
+                        'ptq_stat_tid' => $this->getId(),
                         'pds_name' => 'node_' . $type . '_published',
                     ) )
                     -> fields( array(
@@ -347,7 +293,7 @@ class Nodes extends Task implements TaskInterface, StatsProviderInterface, ProdO
         try {
             $query = db_select('prod_drupal_stats', 's');
             $query->fields('s')
-              ->condition('ppq_stat_pid',$this->getId());
+              ->condition('ptq_stat_tid',$this->getId());
             $result = $query->execute();
             
             foreach ($result as $res) {

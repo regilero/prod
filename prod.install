@@ -325,8 +325,14 @@ function prod_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
-      'ppq_stat_pid' => array(
-        'description' => "related stat provider int32 identifier",
+      'ptq_stat_tid' => array(
+        'description' => "related stat task int32 identifier",
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'prs_stat_pid' => array(
+        'description' => "related stat provider int32 sub-identifier, like pdb_id for prod_db_stats stats",
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
@@ -390,8 +396,12 @@ function prod_schema() {
     ),
     'primary key' => array('prs_id'),
     'unique keys' => array(
-      // provider/column is the real functionnal id
-      'pr_provider_column_idx' => array('ppq_stat_pid','prs_stat_col'),
+      // task/provider/column is the real functionnal id
+      'prs_task_provider_column_idx' => array('ptq_stat_tid','prs_stat_pid','prs_stat_col'),
+    ),
+    'indexes' => array(
+      // or access without the task id
+      'prs_provider_column_idx' => array('prs_stat_pid','prs_stat_col'),
     ),
   );
 
@@ -448,51 +458,51 @@ function prod_schema() {
     ),
   );
 
-  $schema['prod_stats_provider_queue'] = array(
-    'description' => "Prod Statistics providers Queue",
+  $schema['prod_stats_task_queue'] = array(
+    'description' => "Prod Statistics Tasks Queue",
     'fields' => array(
-      'ppq_stat_pid' => array(
+      'ptq_stat_tid' => array(
         'description' => "Internal int32 identifier",
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
-      'ppq_module' => array(
-        'description' => "Stat provider module",
+      'ptq_module' => array(
+        'description' => "Stat Task module",
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
       ),
-      'ppq_name' => array(
+      'ptq_name' => array(
         'description' => "Stat provider name, usually a function or method",
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
       ),
-      'ppq_timestamp' => array(
+      'ptq_timestamp' => array(
         'description' => "UNIX timestamp, next scheduled run",
         'type' => 'int',
         'not null' => TRUE,
       ),
-      'ppq_is_internal' => array(
+      'ptq_is_internal' => array(
         'description' => "Flag: this is managed by a prod internal module",
         'type' => 'int',
         'size' => 'tiny',
         'default' => 1,
       ),
-      'ppq_enable' => array(
-        'description' => "Flag: this Stat provider task is enabled",
+      'ptq_enable' => array(
+        'description' => "Flag: this Stat task is enabled",
         'type' => 'int',
         'size' => 'tiny',
         'default' => 1,
       ),
     ),
-    'primary key' => array('ppq_stat_pid'),
+    'primary key' => array('ptq_stat_tid'),
     'unique keys' => array(
-      'prod_queue_name_idx' => array('ppq_module','ppq_name'),
+      'prod_queue_name_idx' => array('ptq_module','ptq_name'),
     ),
     'indexes' => array(
-      'prod_queue_order_idx' => array('ppq_enable','ppq_timestamp'),
+      'prod_queue_order_idx' => array('ptq_enable','ptq_timestamp'),
     ),
   );
   
@@ -505,8 +515,8 @@ function prod_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
-      'ppq_stat_pid' => array(
-        'description' => "related stat provider int32 identifier",
+      'ptq_stat_tid' => array(
+        'description' => "related stat task int32 identifier",
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
@@ -554,7 +564,7 @@ function prod_schema() {
     ),
     'indexes' => array(
       'prod_stat_ugroup_idx' => array('pds_ugroup'),
-      'prod_stat_by_ppq_id' => array('ppq_stat_pid'),
+      'prod_stat_by_ptq_id' => array('ptq_stat_tid'),
     ),
   );
 

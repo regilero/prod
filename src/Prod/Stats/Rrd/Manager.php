@@ -55,23 +55,43 @@ class Manager extends ProdObject
     /**
      * Load a bunch of Stats Providers, usually the first step 
      *
+     * @param int $stat_task_id, Task Id
+     *
      * @param array|Iterable $providers, list of StatsProviderInterface objects
      *
-     * @return TableInterface
+     * @throws InvalidStatException
+     * 
+     * @return \Drupal\Prod\Stats\Rrd\Manager
      */
-    public function loadMultipleProviders($providers)
+    public function loadMultipleProviders($stat_task_id, $providers)
     {
         if (!isset($this->providers)) {
             $this->providers = array();
         }
+        if (!array_key_exists($stat_task_id, $this->providers)) {
+            $this->providers[$stat_task_id] = array();
+        }
+        
+
         if (!isset($this->definitions)) {
             $this->definitions = array();
         }
-        if (!isset($this->stats)) {
-        $this->stats = array();
+        if (!array_key_exists($stat_task_id, $this->definitions)) {
+            $this->definitions[$stat_task_id] = array();
         }
+
+        if (!isset($this->stats)) {
+            $this->stats = array();
+        }
+        if (!array_key_exists($stat_task_id, $this->stats)) {
+            $this->stats[$stat_task_id] = array();
+        }
+
         if (!isset($this->providers_id_list)) {
             $this->providers_id_list = array();
+        }
+        if (!array_key_exists($stat_task_id, $this->providers_id_list)) {
+            $this->providers_id_list[$stat_task_id] = array();
         }
         
         foreach($providers as $provider) {
@@ -80,25 +100,26 @@ class Manager extends ProdObject
                 throw new InvalidStatException(__METHOD__ . ' has received something which is not a StatsProviderInterface');
             }
 
-            $id = $provider->getStatsProviderId();
+            $pid = $provider->getStatsProviderId();
 
-            $this->providers_id_list[] = $id;
+            $this->providers_id_list[$stat_task_id][] = $pid;
 
-            if (! array_key_exists($id, $this->definitions)) {
-                $this->definitions[$id] = array();
+            if (! array_key_exists($pid, $this->definitions[$stat_task_id])) {
+                $this->definitions[$stat_task_id][$pid] = array();
             }
-            if (! array_key_exists($id, $this->stats)) {
-                $this->stats[$id] = array();
+            if (! array_key_exists($pid, $this->stats[$stat_task_id])) {
+                $this->stats[$stat_task_id][$pid] = array();
             }
             
-            $this->providers[$provider->getStatsProviderId()] = $provider;
+            $this->providers[$stat_task_id][$provider->getStatsProviderId()] = $provider;
+            
         }
 
         // Try to preload all definitions we have for these providers
-        $this->_preloadRrdDefinitions();
+        $this->_preloadRrdDefinitions($stat_task_id);
 
         // Load stats provided by theses providers
-        $this->_loadProvidedStats();
+        $this->_loadProvidedStats($stat_task_id);
 
         return $this;
     }
@@ -109,11 +130,11 @@ class Manager extends ProdObject
      * listed in $this->providers_id_list (each provider can have more than
      * one RRD definition, one for each provided stat).
      */
-    protected function _preloadRrdDefinitions()
+    protected function _preloadRrdDefinitions($stat_task_id)
     {
-        $results = Definition::loadDefinitionsByProviders($this->providers_id_list);
+        $results = Definition::loadDefinitionsByProviders($stat_task_id, $this->providers_id_list);
         foreach ($results as $rrdDef) {
-            $this->_storeRRDDef($rrdDef);
+            $this->_storeRRDDef($stat_task_id, $rrdDef);
         }
     }
 
@@ -121,29 +142,29 @@ class Manager extends ProdObject
      * Store an RRD definition in the right place inside our internal
      *  storage.
      */
-    protected function _storeRRDDef($rrdDef)
+    protected function _storeRRDDef($stat_task_id, $rrdDef)
     {
         $provider_id = $rrdDef->getProviderId();
         $stat_col = $rrdDef->getColId();
         
-        if (!array_key_exists($provider_id, $this->definitions)) {
+        if (!array_key_exists($provider_id, $this->definitions[$stat_task_id])) {
 
-            $this->definitions[$provider_id] = array();
+            $this->definitions[$stat_task_id][$provider_id] = array();
 
         }
 
-        $this->definitions[$provider_id][$stat_col] = $rrdDef;
+        $this->definitions[$stat_task_id][$provider_id][$stat_col] = $rrdDef;
     }
     
     /**
      * Load all stats provided by our providers
      */
-    protected function _loadProvidedStats()
+    protected function _loadProvidedStats($stat_task_id)
     {
 
-        foreach ($this->providers as $provider) {
+        foreach ($this->providers[$stat_task_id] as $provider) {
 
-            $this->stats[$provider->getStatsProviderId()] = $provider->getStatsList();
+            $this->stats[$stat_task_id][$provider->getStatsProviderId()] = $provider->getStatsList();
 
         }
 
@@ -151,16 +172,19 @@ class Manager extends ProdObject
 
     /**
      * Create an RRD definition which was not loaded by _preloadRrdDefinitions
-     * @param int $stat_pid
-     * @param string $stat_col
+     * 
+     * @param int $stat_task_id : the related task/module
+     * @param int $stat_pid : the stat provider id (like tables for db stats)
+     * @param string $stat_col : the stat column (like index size for tables)
      */
-    protected function _createMissingRrdDefinitions($stat_pid,$stat_col)
+    protected function _createMissingRrdDefinitions($stat_task_id, $stat_pid, $stat_col)
     {
         // Ask the provider for defaults
-        $provider = $this->providers[$stat_pid];
+        $provider = $this->providers[$stat_task_id][$stat_pid];
         $defaults = $provider->getDefaultRrdSettings($stat_col);
 
         $rrdDef = new Definition(
+            $stat_task_id,
             $stat_pid,
             $stat_col,
             $defaults['interval'],
@@ -169,43 +193,58 @@ class Manager extends ProdObject
         );
 
         // The save of this new definition will be done later
-        $this->definitions[$stat_pid][$stat_col] = $rrdDef;
+        $this->definitions[$stat_task_id][$stat_pid][$stat_col] = $rrdDef;
     }
 
     /**
      * Manage Rotations (RRD) records for all internally loaded stats
      * This will imply a big number of writes in RRD an RRD settings tables.
+     *
+     * @return \Drupal\Prod\Stats\Rrd\Manager
      */
     public function manageRotations()
     {
 
-        foreach($this->stats as $stat_pid => $statslist) {
+        foreach($this->stats as $stat_task_id =>$task_record) {
 
-            // the $stat_pid is always present, as it is created in loadMultipleProviders
-            // so we do not need to check for that.
+            foreach($task_record as $stat_pid => $statslist) {
 
-            foreach ($statslist as $stat_col => $stat) {
+                // the $stat_task_id or $stat_pid are always present, as they are
+                // created in loadMultipleProviders, 
+                // so we do not need to check for that.
 
-                if (!array_key_exists($stat_col, $this->definitions[$stat_pid])) {
+                foreach ($statslist as $stat_col => $stat) {
 
-                     //that's a missing one.
-                     $this->_createMissingRrdDefinitions($stat_pid,$stat_col);
+                    // But RRD definitions may not exists yet in the definitions
+                    // list, if it does not exists in db yet
+                    if (!array_key_exists($stat_col, $this->definitions[$stat_task_id][$stat_pid])) {
+
+                         //that's a missing one.
+                         $this->_createMissingRrdDefinitions($stat_task_id, $stat_pid, $stat_col);
+
+                    }
+
+                    $rrdDef = $this->definitions[$stat_task_id][$stat_pid][$stat_col];
+                    
+                    $this->logger->log('RRD Rotation for :task/:pid/:col', array(
+                            ':task' => $stat_task_id,
+                            ':pid' => $stat_pid,
+                            ':col' => $stat_col
+                        ),WATCHDOG_DEBUG);
+                    
+                    $rrdDef->manageRotation($stat);
+                    
+                    // the rrdDef may be a very big object
+                    // release it after usage
+                    unset($rrdDef);
+                    unset($this->definitions[$stat_task_id][$stat_pid][$stat_col]);
+
                 }
 
-                $rrdDef = $this->definitions[$stat_pid][$stat_col];
-                $this->logger->log('RRD Rotation for :pid/:col', array(
-                        ':pid' => $stat_pid,
-                        ':col' => $stat_col
-                    ),WATCHDOG_DEBUG);
-                $rrdDef->manageRotation($stat);
-                // the rrdDef may be a very big object
-                // release it after usage
-                unset($rrdDef);
-                unset($this->definitions[$stat_pid][$stat_col]);
-
             }
-
+        
         }
+        return $this;
     }
 
 }

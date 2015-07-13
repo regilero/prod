@@ -22,7 +22,6 @@ function prod_drupal_stats_indexer() {
     // But a task could perform a big number of stats and this limit is not
     // absolute, a single task could bypass the limit.
     //$limit = variable_get('prod_stats_batch_limit',100);
-
     $queue = Queue::getInstance();
     $queue->run();
     /*

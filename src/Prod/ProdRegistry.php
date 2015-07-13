@@ -37,8 +37,8 @@ class ProdRegistry extends ProdObject
         $this->logger->log('Init Known internal Observers', NULL, WATCHDOG_DEBUG);
         
         // Ensure our known internal Task Collectors are registered
-        $user = \Drupal\Prod\Stats\User::getInstance();
-        $node = \Drupal\Prod\Stats\Nodes::getInstance();
+        $user = \Drupal\Prod\Stats\Drupal\User::getInstance();
+        $node = \Drupal\Prod\Stats\Drupal\Nodes::getInstance();
         $node = \Drupal\Prod\Db\TaskHandler::getInstance();
         
         return $this;

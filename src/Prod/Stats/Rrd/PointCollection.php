@@ -89,8 +89,8 @@ class PointCollection Extends ProdObject
      */
     public function save()
     {
-        $query = db_insert('prod_rrd')
-        -> fields(array(
+        $ins_query = db_insert('prod_rrd')
+          -> fields(array(
                 'prs_id',
                 'pr_timestamp',
                 'pr_value',
@@ -98,27 +98,45 @@ class PointCollection Extends ProdObject
                 'pr_value_min',
                 'pr_rrd_index',
                 'pr_aggregate_level',
-        ));
-        
+          ));
+
         foreach($this->points as $point) {
         
-            $record = array();
-            
-            // remap
-            $record['prs_id'] = $this->getRRDId();
-            $record['pr_timestamp'] = $point->getTimestamp();
-            // the value is transformed in the point to allow
-            // storage of decimals as ints
-            $record['pr_value'] = $point->getValue();
-            $record['pr_value_max'] = $point->getMaxValue();
-            $record['pr_value_min'] = $point->getMinValue();
-            $record['pr_rrd_index'] = $point->getIndex();
-            $record['pr_aggregate_level'] = $point->getAggregateLevel();
-            
-            $query->values($record);
-        
+            if ($point->isNew()) {
+                $record = array();
+                
+                // remap
+                $record['prs_id'] = $this->getRRDId();
+                $record['pr_timestamp'] = $point->getTimestamp();
+                // the value is transformed in the point to allow
+                // storage of decimals as ints
+                $record['pr_value'] = $point->getValue();
+                $record['pr_value_max'] = $point->getMaxValue();
+                $record['pr_value_min'] = $point->getMinValue();
+                $record['pr_rrd_index'] = $point->getIndex();
+                $record['pr_aggregate_level'] = $point->getAggregateLevel();
+                
+                $ins_query->values($record);
+                
+            } else {
+                
+                $update_query = db_update('prod_rrd')
+                  -> fields(array(
+                          'pr_timestamp' => $point->getTimestamp(),
+                          'pr_value' => $point->getValue(),
+                          'pr_value_max' => $point->getMaxValue(),
+                          'pr_value_min' => $point->getMinValue(),
+                  ))
+                  ->condition('prs_id', $this->getRRDId())
+                  ->condition('pr_rrd_index', $point->getIndex())
+                  ->condition('pr_aggregate_level', $point->getAggregateLevel());
+                $update_query->execute();
+                
+            }
         }
-        $query->execute();
+        
+        // we always have at least 1 insert
+        $ins_query->execute();
     }
 
 }

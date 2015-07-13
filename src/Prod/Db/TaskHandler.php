@@ -166,7 +166,7 @@ class TaskHandler extends Task implements TaskInterface
                 
                 $rrd_manager = new Manager();
                 $rrd_manager
-                  ->loadMultipleProviders($tables)
+                  ->loadMultipleProviders($this->getId(), $tables)
                   ->manageRotations();
                 
             }

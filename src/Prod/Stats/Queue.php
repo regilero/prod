@@ -61,7 +61,9 @@ class Queue extends ProdObservable
     
     /**
      * Main function
-     *
+     * 
+     * Load/Init the Queue and launch Stats Tasks from this queue,
+     * reschedule the tasks for next run.
      */
     public function run()
     {
@@ -101,32 +103,32 @@ class Queue extends ProdObservable
     protected function _loadObservers()
     {
         
-        // TODO, hooks module_implements fot external objects
+        // TODO, hooks module_implements for external objects
     }
     
     protected function _loadQueue()
     {
-        $query = db_select('prod_stats_provider_queue', 'q');
+        $query = db_select('prod_stats_task_queue', 'q');
         $query->fields('q', array(
-            'ppq_stat_pid',
-            'ppq_module',
-            'ppq_name',
-            'ppq_timestamp',
-            'ppq_enable',
-            'ppq_is_internal',
+            'ptq_stat_tid',
+            'ptq_module',
+            'ptq_name',
+            'ptq_timestamp',
+            'ptq_enable',
+            'ptq_is_internal',
           ))
-          ->orderBy('ppq_timestamp', 'ASC');
+          ->orderBy('ptq_timestamp', 'ASC');
         $results = $query->execute();
         
         foreach( $results as $result) {
             $task = TaskFactory::get(
-                $result->ppq_module,
-                $result->ppq_name,
-                $result->ppq_is_internal,
-                $result->ppq_stat_pid
+                $result->ptq_module,
+                $result->ptq_name,
+                $result->ptq_is_internal,
+                $result->ptq_stat_tid
             );
-            $task->setScheduling($result->ppq_timestamp)
-              ->flagEnabled($result->ppq_enable);
+            $task->setScheduling($result->ptq_timestamp)
+              ->flagEnabled($result->ptq_enable);
             $this->_insertOnQueueWithTimestamp($task);
         }
     }
@@ -157,6 +159,8 @@ class Queue extends ProdObservable
     {
 
         $timestamp = $task->getScheduling();
+        
+        // push task on internal queue, indexed by timestamp
         if (array_key_exists( $timestamp, $this->queue)) {
             
             $this->queue[$timestamp][] = $task;
@@ -167,7 +171,7 @@ class Queue extends ProdObservable
             
         }
 
-        // Ensure the queue array is always sorted
+        // Ensure the queue array is always sorted on the timestamps
         ksort($this->queue, SORT_NUMERIC);
         
         if ( $task->isNew() ) {
@@ -180,29 +184,30 @@ class Queue extends ProdObservable
             // This task has no running time scheduled yet.
             $task->scheduleNextRun();
             
-            // Enforce a save of this new task, this will create the task Id
-            // by inserting the task in the db queue, the db queue Id will become
-            // this task Id.
-            $this->_saveTask($task);
-            
         }
         
-        // also save an index of task present in queue
+        // Enforce a save of this (new or not) task, this will create the task
+        // Id for new tasks by inserting the task in the db queue,
+        // the db queue Id will become this task Id.
+        // for existing tasks this zill record the new scheduling.
+        $this->_saveTask($task);
+        
+        // also save an index of tasks present in queue
         $this->queue_idx[$task->getId()] = 1;
     }
     
     protected function _saveTask(TaskInterface $task)
     {
         try {
-            db_merge('prod_stats_provider_queue')
+            db_merge('prod_stats_task_queue')
               -> key( array(
-                    'ppq_module' => $task->getTaskModule(),
-                    'ppq_name' => $task->getTaskName(),
+                    'ptq_module' => $task->getTaskModule(),
+                    'ptq_name' => $task->getTaskName(),
               ) )
               -> fields( array(
-                    'ppq_timestamp' => $task->getScheduling(),
-                    'ppq_enable' => (int) $task->isEnabled(),
-                    'ppq_is_internal' => (int) $task->isInternal(),
+                    'ptq_timestamp' => $task->getScheduling(),
+                    'ptq_enable' => (int) $task->isEnabled(),
+                    'ptq_is_internal' => (int) $task->isInternal(),
               ) )
               ->execute();
         } catch (Exception $e) {
@@ -212,13 +217,13 @@ class Queue extends ProdObservable
         // get the record id
         try {
             $id = null;
-            $query = db_select('prod_stats_provider_queue', 'q');
-            $query->fields('q',array('ppq_stat_pid'))
-                ->condition('ppq_module',$task->getTaskModule())
-                ->condition('ppq_name',$task->getTaskName());
+            $query = db_select('prod_stats_task_queue', 'q');
+            $query->fields('q',array('ptq_stat_tid'))
+                ->condition('ptq_module',$task->getTaskModule())
+                ->condition('ptq_name',$task->getTaskName());
             $result = $query->execute();
             foreach ($result as $res) {
-                $id = $res->ppq_stat_pid;
+                $id = $res->ptq_stat_tid;
             }
             
             if (is_null($id)) {
@@ -252,6 +257,8 @@ class Queue extends ProdObservable
                                 ':module' => $task->getTaskModule(),
                                 ':name' => $task->getTaskName()
                             ), WATCHDOG_INFO);
+                        
+                        // RUN the task (usually collecting results)
                         $task->run();
                         
                         // And then we reschedule for next run
@@ -267,10 +274,12 @@ class Queue extends ProdObservable
                                     ':name' => $task->getTaskName(),
                                     ':timestamp' => $current +1
                             ), WATCHDOG_WARNING);
+                            
                             $task->setScheduling( $current +1 );
                             
                         }
                         
+                        // Save updated task in db queue for next run
                         $this->queueTask($task, TRUE);
                     }
                     
@@ -280,6 +289,15 @@ class Queue extends ProdObservable
                 
                 // Premature ending, all other timestamper task records are in the future
                 // maybe because we've just been running/re-sched it before.
+
+                // This task should be running now! *******
+                $this->logger->log("Avoid running Stat task run for :module :: :name :current < :timestamp.", array(
+                        ':module' => $task->getTaskModule(),
+                        ':name' => $task->getTaskName(),
+                        ':current' => $current,
+                        ':timestamp' => $timestamp
+                ), WATCHDOG_DEBUG);
+                
                 break;
                 
             }

@@ -77,7 +77,7 @@ function prod_cronapi($op, $job = NULL) {
 
   // Warning, that's some heavy stuff, call elysia via drush, please
 
-  if (variable_get('prod_fs_watch_enabled', TRUE)) {
+  if (variable_get('prod_fs_watch_enabled', FALSE)) {
     $items['prod_filesystem_watcher_indexer'] = array(
       'description' => 'Prod: Indexation of the filesystem, small parts at each run',
       'rule' => '*/5 * * * *', // Every 5 minutes
@@ -89,7 +89,7 @@ function prod_cronapi($op, $job = NULL) {
       'file' => 'prod_fs_watcher.inc'
     );
   }
-
+/*
   if (variable_get('prod_stats_db_enabled', TRUE)) {
     $items['prod_db_stats_indexer'] = array(
       'description' => 'Prod: collect statistics on database',
@@ -97,20 +97,25 @@ function prod_cronapi($op, $job = NULL) {
       'file' => 'prod_stats_db.inc'
     );
   }
-
-  if (variable_get('prod_stats_drupal_enabled', TRUE)) {
+*/
+  if (variable_get('prod_stats_enabled', TRUE)) {
     $items['prod_drupal_stats_indexer'] = array(
-      'description' => 'Prod: collect statistics on Drupal objects',
-      'rule' => '0/15 * * * *', // Every 15 minutes
+      'description' => 'Prod: collect statistics and perform RRD rotations if needed',
+      'rule' => '0/5 * * * *', // Every 5 minutes
       'file' => 'prod_stats_drupal.inc'
     );
   }
-
+  // TODO: seems the file inclusion does not work, check that
+    $items['drush_prod_drupal_stats_indexer'] = array(
+      'description' => 'Prod2: collect statistics and perform RRD rotations if needed',
+      'rule' => '0/5 * * * *', // Every 5 minutes
+    );
+/*
   $items['prod_report'] = array(
     'description' => 'Send the report',
     'rule' => '07 03 * * *', // Every day at 03:07
   );
-
+*/
   return $items;
 }
 

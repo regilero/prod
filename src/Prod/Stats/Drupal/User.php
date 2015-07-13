@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\Prod\Stats;
+namespace Drupal\Prod\Stats\Drupal;
 
 use Drupal\Prod\Stats\StatsProviderInterface;
 use Drupal\Prod\ProdObserverInterface;
@@ -8,19 +8,20 @@ use Drupal\Prod\ProdObservable;
 use Drupal\Prod\ProdObject;
 use Drupal\Prod\Monitoring\Cacti;
 use Drupal\Prod\Stats\TaskInterface;
-use Drupal\Prod\Stats\Task;
+use Drupal\Prod\Stats\Drupal\DrupalTask;
 use Drupal\Prod\Stats\Queue;
+use Drupal\Prod\Stats\Stat;
 use Drupal\Prod\Error\StatTaskException;
 use Drupal\Prod\Error\DevelopperException;
 
 /**
  */
-class User extends Task implements TaskInterface, StatsProviderInterface, ProdObserverInterface
+class User extends DrupalTask implements TaskInterface, StatsProviderInterface, ProdObserverInterface
 {
 
     /**
      *
-     * @var \Drupal\Prod\Stats\User object (for Singleton)
+     * @var \Drupal\Prod\Stats\Drupal\User object (for Singleton)
      */
     protected static $instance;
     
@@ -29,7 +30,7 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
     
     // Task informations
     // the module, here
-    protected $task_module='Drupal\\Prod\\Stats\\User';
+    protected $task_module='Drupal\\Prod\\Stats\\Drupal\\User';
     // running task collector function
     protected $task_name='collect';
 
@@ -39,6 +40,12 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
     protected $enabled_users_time = 0;
     protected $active_users;
     protected $active_users_time = 0;
+    protected $recent_connected;
+    protected $recent_connected_time = 0;
+    protected $day_connected;
+    protected $day_connected_time = 0;
+    protected $month_connected;
+    protected $month_connected_time = 0;
     
     /**
      * Singleton implementation
@@ -84,76 +91,19 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
     }
     
     /**
-     * Receive and handle a signal from an Observable object that we registered.
-     *
-     * @param ProdObservable $sender Sender of the signal (Obervable)
-     *
-     * @param int $signal one of the signal defined as consts in ProdObservable
-     * 
-     * @param string $info optional information associated with the signal
-     */
-    public function signal(ProdObservable $sender, $signal, $info=null)
-    {
-        switch ($signal) {
-            case ProdObservable::SIGNAL_MONITOR_SUMMARY:
-              $this->_buildMonitorSummaryLines($sender);
-              break;
-            case ProdObservable::SIGNAL_STAT_TASK_INFO:
-              $this->_registerTasksInQueue($sender);
-              break;
-        }
-        
-    }
-    
-    protected function _registerTasksInQueue(Queue $queue)
-    {
-        // We are just one task, so use simple add-me-to-the-queue mode
-        // This will ensure we'll get a call for first and next scheduling
-        // and also this will CREATE our Stat provider ID! which is the id
-        // in the db queue.
-        $this->flagEnabled(TRUE);
-        $this->flagInternal(TRUE);
-        $queue->queueTask($this);
-    }
-
-    protected function _buildMonitorSummaryLines(Cacti $sender)
-    {
-
-        $this->logger->log(__METHOD__, NULL, WATCHDOG_DEBUG);
-        
-        if ($this->_loadId()) {
-            
-            $stats = $this->getStatsList();
-
-            foreach($stats as $key => $stat) {
-
-                // That's a final end user input, apply formatter
-                $line = $key . '=' . floor($stat->getValue()/1000);
-                $sender->AddOutputLine($line);
-                
-            }
-            
-        } else {
-            
-            $this->logger->log("User; no metrics available yet", NULL, WATCHDOG_DEBUG);
-            
-        }
-    }
-    
-    
-    /**
      * This is the function called when we need to recompute the stats
      */
     public function collect()
     {
 
         $this->logger->log(__METHOD__, NULL, WATCHDOG_DEBUG);
+
+        $total = $active = $enabled = $five_min = $day = $month = 0;
         
         // count users by status
         $result = db_query("
             select status,count(*) as counter from {users} group by status
         ");
-        $total = $active = $enabled = 0;
         foreach($result as $record) {
             
             if (0 == $record->status) {
@@ -167,6 +117,10 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
               
             }
         }
+        $this->logger->log("User.total: " . $total, NULL, WATCHDOG_DEBUG);
+        $this->logger->log("User.enabled: " . $enabled, NULL, WATCHDOG_DEBUG);
+        $this->setTotalUsers($total * 1000);
+        $this->setEnabledUSers($enabled * 1000);
         
         // count users having at least one connection
         $result = db_query("
@@ -175,6 +129,8 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
         foreach($result as $record) {
             $active =  $record->counter;
         }
+        $this->logger->log("User.active: " . $active, NULL, WATCHDOG_DEBUG);
+        $this->setActiveUsers($active * 1000);
         
         //connected with activity in the last 5 minutes
         $result = db_query("
@@ -183,9 +139,11 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
             where status=1
             and ( access-(". REQUEST_TIME. "-300)) > 0
         ");
-        /*foreach($result as $record) {
-            $res['5min'] = $record->counter;
-        }*/
+        foreach($result as $record) {
+            $five_min = $record->counter;
+        }
+        $this->logger->log("User.conn.5_min: " . $five_min, NULL, WATCHDOG_DEBUG);
+        $this->setRecentConnected($five_min * 1000);
         
         // connected today
         // TODO: mysql only?
@@ -195,10 +153,12 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
             where status=1
             and (access > UNIX_TIMESTAMP(CURRENT_DATE()) )
         ");
-        /*foreach($result as $record) {
-            $res['day'] = $record->counter;
+        foreach($result as $record) {
+            $day = $record->counter;
         }
-        */
+        $this->logger->log("User.conn.day: " . $day, NULL, WATCHDOG_DEBUG);
+        $this->setDayConnected($day * 1000);
+        
         // connected month
         // TODO: mysql only?
         $result = db_query("
@@ -206,25 +166,27 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
             from {users}
             where status=1
             and (access > UNIX_TIMESTAMP(
-                  DATE_ADD(
-                        LAST_DAY( 
-                           DATE_SUB( CURRENT_DATE(), INTERVAL 31 DAY )
-                        )
-                        , INTERVAL 1 DAY
+                  CONCAT(
+                      DATE_ADD(
+                            LAST_DAY( 
+                               DATE_SUB( CURRENT_DATE(), INTERVAL 31 DAY )
+                             )
+                            , INTERVAL 1 DAY
+                      ),
+                      ' 00:00:00'
                   )
                 ));
         ");
-        /*foreach($result as $record) {
-            $res['month'] = $record->counter;
-        }*/
+        foreach($result as $record) {
+            $month = $record->counter;
+        }
+        $this->logger->log("User.conn.month: " . $month, NULL, WATCHDOG_DEBUG);
+        $this->setMonthConnected($month * 1000);
 
-        $this->logger->log("User.total: ".$total, NULL, WATCHDOG_DEBUG);
-        $this->logger->log("User.enabled: ".$enabled, NULL, WATCHDOG_DEBUG);
-        $this->logger->log("User.active: ".$active, NULL, WATCHDOG_DEBUG);
-        $this->setTotalUsers($total * 1000);
-        $this->setEnabledUSers($enabled * 1000);
-        $this->setActiveUsers($active * 1000);
+        // Final save of all this data collected
         $this->save();
+
+        $this->manageRRD();
     }
     
 
@@ -275,8 +237,54 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
         return $this;
         
     }
-    
 
+    protected function getRecentConnected()
+    {
+        if (!isset($this->recent_connected)) {
+            throw new DevelopperException('Object is not loaded, cannot extract online_users connected stat');
+        }
+    
+        return $this->recent_connected;
+    }
+    
+    protected function setRecentConnected( $nb ) {
+    
+        $this->recent_connected = (int) $nb;
+        return $this;
+    
+    }
+
+    protected function getMonthConnected()
+    {
+        if (!isset($this->month_connected)) {
+            throw new DevelopperException('Object is not loaded, cannot extract month_active_users connected stat');
+        }
+    
+        return $this->month_connected;
+    }
+    
+    protected function setMonthConnected( $nb ) {
+    
+        $this->month_connected = (int) $nb;
+        return $this;
+    
+    }
+    
+    protected function getDayConnected()
+    {
+        if (!isset($this->day_connected)) {
+            throw new DevelopperException('Object is not loaded, cannot extract day_active_users connected stat');
+        }
+    
+        return $this->day_connected;
+    }
+    
+    protected function setDayConnected( $nb ) {
+    
+        $this->day_connected = (int) $nb;
+        return $this;
+    
+    }
     /**
      * Get the stats provider id
      *
@@ -305,7 +313,7 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
         try {
             db_merge('prod_drupal_stats')
               -> key( array(
-                  'ppq_stat_pid' => $this->getId(),
+                  'ptq_stat_tid' => $this->getId(),
                   'pds_name' => 'user_total',
               ) )
               -> fields( array(
@@ -318,7 +326,7 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
             
             db_merge('prod_drupal_stats')
               -> key( array(
-                  'ppq_stat_pid' => $this->getId(),
+                  'ptq_stat_tid' => $this->getId(),
                   'pds_name' => 'user_enabled',
               ) )
               -> fields( array(
@@ -331,7 +339,7 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
             
             db_merge('prod_drupal_stats')
               -> key( array(
-                  'ppq_stat_pid' => $this->getId(),
+                  'ptq_stat_tid' => $this->getId(),
                   'pds_name' => 'user_active',
               ) )
               -> fields( array(
@@ -341,6 +349,46 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
                   'pds_enable' => 1,
               ) )
               ->execute();
+
+              db_merge('prod_drupal_stats')
+                -> key( array(
+                      'ptq_stat_tid' => $this->getId(),
+                      'pds_name' => 'online_users',
+                ) )
+                -> fields( array(
+                      'pds_value' => $this->getRecentConnected(),
+                      'pds_is_1024' => 0,
+                      'pds_timestamp' => REQUEST_TIME,
+                      'pds_enable' => 1,
+                ) )
+                ->execute();
+
+              db_merge('prod_drupal_stats')
+                -> key( array(
+                      'ptq_stat_tid' => $this->getId(),
+                      'pds_name' => 'day_active_users',
+                ) )
+                -> fields( array(
+                      'pds_value' => $this->getDayConnected(),
+                      'pds_is_1024' => 0,
+                      'pds_timestamp' => REQUEST_TIME,
+                      'pds_enable' => 1,
+                ) )
+                ->execute();
+
+              db_merge('prod_drupal_stats')
+                -> key( array(
+                      'ptq_stat_tid' => $this->getId(),
+                      'pds_name' => 'month_active_users',
+                ) )
+                -> fields( array(
+                      'pds_value' => $this->getMonthConnected(),
+                      'pds_is_1024' => 0,
+                      'pds_timestamp' => REQUEST_TIME,
+                      'pds_enable' => 1,
+                ) )
+                ->execute();
+                
         } catch (Exception $e) {
             throw new StatTaskException(__METHOD__ . ": Unable to save the Task Stat record. " . $e->getMessage());
         }
@@ -360,7 +408,7 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
         try {
             $query = db_select('prod_drupal_stats', 's');
             $query->fields('s')
-              ->condition('ppq_stat_pid',$this->getId());
+              ->condition('ptq_stat_tid',$this->getId());
             $result = $query->execute();
             
             foreach ($result as $res) {
@@ -376,6 +424,18 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
                     case 'user_total':
                         $this->setTotalUsers((int) $res->pds_value);
                         $this->total_users_time = $res->pds_timestamp;
+                        break;
+                    case 'online_users':
+                        $this->setRecentConnected((int) $res->pds_value);
+                        $this->recent_connected_time = $res->pds_timestamp;
+                        break;
+                    case 'day_active_users':
+                        $this->setDayConnected((int) $res->pds_value);
+                        $this->day_connected_time = $res->pds_timestamp;
+                        break;
+                    case 'month_active_users':
+                        $this->setMonthConnected((int) $res->pds_value);
+                        $this->month_connected_time = $res->pds_timestamp;
                         break;
                     default:
                         $this->logger->log(
@@ -405,36 +465,63 @@ class User extends Task implements TaskInterface, StatsProviderInterface, ProdOb
         $res = array();
         
         if ( 0 !== $this->total_users_time) {
-            $stat_user_total = new Stat(
+            $res['user_total'] = $stat_user_total = new Stat(
               $this->getId(),
               'user_total',
               $this->getTotalUsers(),
               $this->total_users_time,
               'Total users'
             );
-            $res['user_total'] = $stat_user_total;
         }
 
         if ( 0 !== $this->total_users_time) {
-            $stat_user_enabled = new Stat(
+            $res['user_enabled'] = new Stat(
               $this->getId(),
               'user_enabled',
               $this->getEnabledUSers(),
               $this->enabled_users_time,
               'Total enabled users'
             );
-            $res['user_enabled'] = $stat_user_enabled;
         }
 
         if ( 0 !== $this->total_users_time) {
-            $stat_user_active = new Stat(
+            $res['user_active'] = new Stat(
               $this->getId(),
               'user_active',
               $this->getActiveUsers(),
               $this->active_users_time,
               'Total active users'
             );
-            $res['user_active'] = $stat_user_active;
+        }
+
+        if ( 0 !== $this->recent_connected_time ) {
+            $res['online_users'] = new Stat(
+                $this->getId(),
+                'online_users',
+                $this->getRecentConnected(),
+                $this->recent_connected_time,
+                'Recently connected users'
+            );
+        }
+        
+        if ( 0 !== $this->day_connected_time ) {
+            $res['day_active_users'] = new Stat(
+              $this->getId(),
+              'day_active_users',
+              $this->getDayConnected(),
+              $this->day_connected_time,
+              'Day connected users'
+            );
+        }
+        
+        if ( 0 !== $this->month_connected_time ) {
+            $res['month_active_users'] = new Stat(
+              $this->getId(),
+              'month_active_users',
+              $this->getMonthConnected(),
+              $this->month_connected_time,
+              'Month connected users'
+            );
         }
     
         return $res;

@@ -190,10 +190,17 @@ class Task extends ProdObject implements TaskInterface
             $this->setScheduling(REQUEST_TIME);
             
         } else {
-            $this->setScheduling(
-                    REQUEST_TIME
-                    + variable_get('prod_default_rrd_interval', 300)
-            );
+
+            $new = REQUEST_TIME + variable_get('prod_default_rrd_interval', 300);
+            
+            $this->logger->log("Stat :module :method, rescheduling at :timestamp.", array(
+                    ':module' => $this->task_module,
+                    ':method' => $this->task_name,
+                    ':timestamp' => $new
+            ), WATCHDOG_DEBUG);
+            
+            $this->setScheduling( $new );
+            
         }
     }
     
@@ -242,16 +249,16 @@ class Task extends ProdObject implements TaskInterface
             return TRUE;
         }
         
-        $query = db_select('prod_stats_provider_queue', 'q');
+        $query = db_select('prod_stats_task_queue', 'q');
         $query->fields('q', array(
-                'ppq_stat_pid',
+                'ptq_stat_tid',
           ))
-          ->condition('ppq_module', $this->getTaskModule())
-          ->condition('ppq_name', $this->getTaskName());
+          ->condition('ptq_module', $this->getTaskModule())
+          ->condition('ptq_name', $this->getTaskName());
         $results = $query->execute();
         
         foreach( $results as $result) {
-            $this->id = $result->ppq_stat_pid;
+            $this->id = $result->ptq_stat_tid;
         }
         
         return (!empty($this->id));
