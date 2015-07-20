@@ -33,7 +33,107 @@ if (!class_exists('Drupal\Prod\Db\AnalyzerInterface')) {
  * Implements hook_menu().
  */
 function prod_menu() {
-  return array();
+  
+  $items = array();
+  
+  /****************************************************************************
+   *
+   * Reports
+   *
+   ****************************************************************************/
+  
+
+  $items['admin/reports/prod/ajax/%'] = array(
+    'title'            => t('Ajax connector for Prod data'),
+    'description'      => 'Prod Database Trackers',
+    'page callback'    => 'prod_admin_ajax_json_result',
+    'page arguments'   => array(4),
+    'access arguments' => array('access prod module stats'),
+    'file'             => 'prod.admin.inc',
+    'file path'        => drupal_get_path('module', 'prod'),
+    'type'             => MENU_CALLBACK
+  );
+  
+  $items['admin/reports/prod'] = array(
+    'title'            => t('Prod'),
+    'description'      => 'Prod Trackers',
+    'page callback'    => 'prod_admin_page',
+    'access arguments' => array('access prod module backoffice pages'),
+    'file'             => 'prod.admin.inc',
+    'file path'        => drupal_get_path('module', 'prod'),
+    'type'             => MENU_NORMAL_ITEM,
+    'weight'           => -100,
+  );
+  
+
+  $items['admin/reports/prod/db'] = array(
+    'title'            => t('Database Stats'),
+    'description'      => 'Prod Database Trackers',
+    'page callback'    => 'prod_admin_page_db',
+    'access arguments' => array('access prod module stats'),
+    'file'             => 'prod.admin.inc',
+    'file path'        => drupal_get_path('module', 'prod'),
+    'type'             => MENU_DEFAULT_LOCAL_TASK,
+  );
+
+  $items['admin/reports/prod/users'] = array(
+    'title'            => t('Users Stats'),
+    'description'      => 'Prod Users Trackers',
+    'page callback'    => 'prod_admin_page_users',
+    'access arguments' => array('access prod module stats'),
+    'file'             => 'prod.admin.inc',
+    'file path'        => drupal_get_path('module', 'prod'),
+    'type'             => MENU_LOCAL_TASK,
+  );
+  
+  $items['admin/reports/prod/nodes'] = array(
+    'title'            => t('Nodes Stats'),
+    'description'      => 'Prod Users Trackers',
+    'page callback'    => 'prod_admin_page_nodes',
+    'access arguments' => array('access prod module stats'),
+    'file'             => 'prod.admin.inc',
+    'file path'        => drupal_get_path('module', 'prod'),
+    'type'             => MENU_LOCAL_TASK,
+  );
+  
+  /****************************************************************************
+   *
+   * Settings
+   *
+   ****************************************************************************/
+  
+  $items['admin/config/prod'] = array(
+      'title'            => t("Prod Configuration"),
+      'description'      => "Manage Prod module settings.",
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('prod_admin_config_form'),
+      'access arguments' => array('access prod module configuration'),
+      'file'             => 'prod.admin.inc',
+      'file path'        => drupal_get_path('module', 'prod'),
+      'type'             => MENU_NORMAL_ITEM,
+  );
+  $items['admin/config/prod/collector'] = array(
+      'title'            => t('Prod collectors'),
+      'description'      => "Manage Prod module's collectors settings",
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('prod_admin_config_collectors_form'),
+      'access arguments' => array('access prod module configuration'),
+      'file'             => 'prod.admin.inc',
+      'file path'        => drupal_get_path('module', 'prod'),
+      'type'             => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['admin/config/prod/rrd'] = array(
+      'title'            => t('Prod RRD'),
+      'description'      => "Manage Prod module's RRD settings",
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('prod_admin_config_rrd_form'),
+      'access arguments' => array('access prod module configuration'),
+      'file'             => 'prod.admin.inc',
+      'file path'        => drupal_get_path('module', 'prod'),
+      'type'             => MENU_LOCAL_TASK,
+  );
+  
+  return $items;
 }
 
 /**
@@ -55,12 +155,7 @@ function prod_cron() {
       prod_filesystem_watcher_cleaner();
     }
 
-    if (variable_get('prod_stats_db_enabled', TRUE)) {
-      module_load_include('inc', 'prod', 'prod_stats_db');
-      prod_db_stats_indexer();
-    }
-
-    if (variable_get('prod_stats_drupal_enabled', TRUE)) {
+    if (variable_get('prod_stats_enabled', TRUE)) {
       module_load_include('inc', 'prod', 'prod_stats_drupal');
       prod_drupal_stats_indexer();
     }
@@ -89,15 +184,7 @@ function prod_cronapi($op, $job = NULL) {
       'file' => 'prod_fs_watcher.inc'
     );
   }
-/*
-  if (variable_get('prod_stats_db_enabled', TRUE)) {
-    $items['prod_db_stats_indexer'] = array(
-      'description' => 'Prod: collect statistics on database',
-      'rule' => '0/10 * * * *', // Every 10 minutes
-      'file' => 'prod_stats_db.inc'
-    );
-  }
-*/
+
   if (variable_get('prod_stats_enabled', TRUE)) {
     $items['prod_drupal_stats_indexer'] = array(
       'description' => 'Prod: collect statistics and perform RRD rotations if needed',
@@ -126,18 +213,22 @@ function drush_prod_drupal_stats_indexer() {
   module_load_include('inc', 'prod', 'prod_stats_drupal');
   prod_drupal_stats_indexer();
 }
+
 function drush_prod_filesystem_watcher_cleaner() {
   module_load_include('inc', 'prod', 'prod_fs_watcher');
   prod_filesystem_watcher_cleaner();
 }
+
 function drush_prod_filesystem_watcher_indexer() {
   module_load_include('inc', 'prod', 'prod_fs_watcher');
   prod_filesystem_watcher_indexer();
 }
+
 function drush_prod_monitor() {
   module_load_include('inc', 'prod', 'prod_monitoring');
   prod_monitor();
 }
+
 function drush_prod_monitor_stats() {
   module_load_include('inc', 'prod', 'prod_monitoring');
   prod_monitor_stats();
@@ -150,3 +241,38 @@ function drush_prod_monitor_stats() {
 function prod_report() {
 }
 
+/**
+ * Implements hook_theme().
+ */
+function prod_theme() {
+  return array(
+    'prod_admin_display_results' => array(
+      'variables'      => array('results' => NULL),
+      'render element' => 'content',
+      /*'file'           => 'prod.theme.inc',*/
+      'template'       => 'prod-admin-display-results',
+    ),/*
+    'stat_table' => array(
+      'render element' => 'content',
+      'template'       => 'prod-stat-table',
+    ),*/
+  );
+}
+
+/**
+ * Implements template_preprocess_HOOK().
+ */
+function template_preprocess_prod_admin_display_results(&$variables) {
+//var_dump($variables); die('hard');
+/*
+    $variables['items'] = $variables['content']['#items'];
+  if (isset($variables['block']['#list'])) {
+    $variables['list'] = &$variables['block']['#list'];
+  } else {
+    $variables['list'] = array();
+  }
+  $variables['pager'] = isset($variables['block']['#pager']) ? $variables['block']['#pager'] : NULL;
+  $variables['more_link'] = isset($variables['block']['#more_link']) ? $variables['block']['#more_link'] : NULL;
+*/
+  
+}

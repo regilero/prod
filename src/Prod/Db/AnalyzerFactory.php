@@ -3,7 +3,7 @@
 namespace Drupal\Prod\Db;
 
 use Drupal\Prod\Error\DbAnalyzerException;
-use Drupal\Prod\Db\Mysql\Analyzer;;
+use Drupal\Prod\Db\Mysql\Analyzer;
 
 /**
  * Drupal\Prod\Db\AnalyzerFactory class
