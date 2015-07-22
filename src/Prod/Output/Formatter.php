@@ -102,7 +102,9 @@ class Formatter extends ProdObject
             $meta['headers'] = array();
             foreach ($this->columns as $j => $column) {
                 
-                $meta['headers'][] = t($column->getTitle());
+                if ($column->validateEnv( $env) ) {
+                    $meta['headers'][] = t($column->getTitle());
+                }
                 
             }
         }
@@ -130,7 +132,8 @@ class Formatter extends ProdObject
             foreach ($this->columns as $j => $column) {
                 
                 // column render is FALSE if column is not for current env
-                if ( $col = $column->render($row, $env) ) {
+                $col = $column->render($row, $env);
+                if ( FALSE !== $col ) {
                 
                     // in json mode the keyed rows arrays should be merged
                     if ( 'json' === $env ) {
@@ -161,6 +164,43 @@ class Formatter extends ProdObject
                     
             }
         }
+        
+        return $final;
+    }
+    
+    public function renderDefinition()
+    {
+        $final = array();
+        $key = $this->getKey();
+    
+        $envs = array('json', 'table');
+        foreach( $envs as $env ) {
+            $key = ('json'===$env)? 'graphic': $env;
+            $final[$key] = $this->renderMetaInformations( $env );
+        }
+        
+        $final['buttons'] = array(
+            'next' => t('Next'),
+            'prev' => t('Previous'),
+            'save' => t('Save'),
+        );
+        
+
+        $final['graphic']['type'] = '2bars1line';
+        $final['graphic']['axis_x'] = array(
+                'key' => 'table',
+                'label' => 'none',
+                'rotate' => TRUE,
+        );
+        $final['graphic']['axis_y1'] = array(
+                'key' => 'full_size',
+                'label' => t('Full Size')
+        );
+        $final['graphic']['axis_y2'] = array(
+                'key' => 'rows',
+                'label' => t('Nb rows')
+        );
+        $final['graphic']['has_tooltip'] = TRUE;
         
         return $final;
     }

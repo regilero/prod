@@ -219,9 +219,13 @@ class Column extends ProdObject
         return $this;
     }
     
+    public function validateEnv($env) {
+        return (! array_key_exists($env , $this->invalid_envs));
+    }
+    
     public function render( $data, $env )
     {
-        if ( array_key_exists($env , $this->invalid_envs)) return FALSE;
+        if ( ! $this->validateEnv($env)) return FALSE;
         
         $out = '';
         
@@ -278,13 +282,13 @@ class Column extends ProdObject
                     break;
 
                 case 'human_int':
-                    $out = number_format($out / 100, 0);
+                    $out = number_format($out, 0);
                     $style = 'text-align: right';
                     break;
                     
 
                 case 'human_bytes':
-                    $out = format_size($out / 100);
+                    $out = format_size($out);
                     $style = 'text-align: right';
                     break;
 

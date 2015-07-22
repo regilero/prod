@@ -44,10 +44,20 @@ function prod_menu() {
   
 
   $items['admin/reports/prod/ajax/%'] = array(
-    'title'            => t('Ajax connector for Prod data'),
-    'description'      => 'Prod Database Trackers',
-    'page callback'    => 'prod_admin_ajax_json_result',
+    'title'            => t('Ajax connector for Prod data - definitions'),
+    'description'      => 'Prod Database Trackers reports',
+    'page callback'    => 'prod_admin_ajax_json_def',
     'page arguments'   => array(4),
+    'access arguments' => array('access prod module stats'),
+    'file'             => 'prod.admin.inc',
+    'file path'        => drupal_get_path('module', 'prod'),
+    'type'             => MENU_CALLBACK
+  );
+  $items['admin/reports/prod/ajax/%/%/%/%'] = array(
+    'title'            => t('Ajax connector for Prod data'),
+    'description'      => 'Prod Database Trackers reports',
+    'page callback'    => 'prod_admin_ajax_json_result',
+    'page arguments'   => array(4,5,6,7),
     'access arguments' => array('access prod module stats'),
     'file'             => 'prod.admin.inc',
     'file path'        => drupal_get_path('module', 'prod'),
