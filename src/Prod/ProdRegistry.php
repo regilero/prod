@@ -39,6 +39,7 @@ class ProdRegistry extends ProdObject
         // Ensure our known internal Task Collectors are registered
         $user = \Drupal\Prod\Stats\Drupal\User::getInstance();
         $node = \Drupal\Prod\Stats\Drupal\Nodes::getInstance();
+        $node = \Drupal\Prod\Stats\Drupal\Bootstrap::getInstance();
         $db = \Drupal\Prod\Db\TaskHandler::getInstance();
         
         return $this;

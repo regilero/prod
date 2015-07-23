@@ -450,9 +450,3 @@ class Nodes extends DrupalTask implements TaskInterface, StatsProviderInterface,
         return $defaults;
     }
 }
-
-/* 
-
-$time['db_bootstrap'] = round($t1-$t0,3)*1000;
-$time['variables_bootstrap'] = round($t3-$t2,3)*1000;
-*/

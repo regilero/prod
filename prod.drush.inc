@@ -9,7 +9,7 @@
  */
 function prod_drush_command() {
   $items = array();
-
+  /*
   $items['prod-fs-index'] = array(
     'description' => dt("prod stats: index a small part of this website filesystem"),
     'arguments' => array(),
@@ -24,6 +24,7 @@ function prod_drush_command() {
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_FULL, // Full bootstrap.
     'aliases' => array('profsc'),
   );
+  */
   $items['prod-drupal-index'] = array(
     'description' => dt("prod stats: Collect Drupal objects informations"),
     'arguments' => array(),
@@ -31,6 +32,7 @@ function prod_drush_command() {
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_FULL, // Full bootstrap.
     'aliases' => array('prodri'),
   );
+  /*
   $items['prod-report'] = array(
     'description' => dt("prod stats: generate report and send it"),
     'arguments' => array(),
@@ -38,6 +40,7 @@ function prod_drush_command() {
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_FULL, // Full bootstrap.
     'aliases' => array('prodri'),
   );
+  */
   $items['prod-monitor-check'] = array(
     'description' => dt("Nagios checker"),
     'arguments' => array(),

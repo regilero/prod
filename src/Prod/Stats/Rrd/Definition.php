@@ -469,11 +469,21 @@ class Definition Extends ProdObject
                 || ($this->last_timestamp < $this->last_entries[4][0]->getTimestamp())
                 || ($this->last_timestamp < $this->last_entries[5][0]->getTimestamp())
         ) {
-        
+            
+            $entries = implode(',', array(
+                    $this->last_entries[1][0]->getTimestamp(),
+                    $this->last_entries[2][0]->getTimestamp(),
+                    $this->last_entries[3][0]->getTimestamp(),
+                    $this->last_entries[4][0]->getTimestamp(),
+                    $this->last_entries[5][0]->getTimestamp(),
+            ));
             $this->logger->log(
-                    'Strange data, we have records in the future for rrd '
-                    . $this->getId(),
-                    NULL, WATCHDOG_WARNING);
+                    'Strange data, we have records in the future for rrd :id: :entries > last_timestamp: :last',
+                    array(
+                        ':id' => $this->getId(),
+                        ':entries' => $entries,
+                        ':last' => $this->last_timestamp,
+                    ), WATCHDOG_WARNING);
         
             $this->_cleanup_bad_records( $this->last_timestamp );
         
