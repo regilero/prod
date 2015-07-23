@@ -29,11 +29,10 @@ class DrushLog implements LogInterface
      */
     public function log($message, $args=NULL, $level)
     {
-        //if (variable_get('prod_log_level',WATCHDOG_NOTICE)>=$level) 
-        if (variable_get('prod_log_level',WATCHDOG_DEBUG)>=$level)
+        if (variable_get('prod_log_level',WATCHDOG_NOTICE) >= $level)
         {
           watchdog('Prod',$message, $args,$level);
-          if (WATCHDOG_DEBUG === $level) {
+          //if (WATCHDOG_DEBUG === $level) {
               if (! is_null($args)) {
                   $argstr = '';
                   foreach ($args as $k => $v) {
@@ -43,7 +42,7 @@ class DrushLog implements LogInterface
               } else {
                   drush_log('[P] ' . $message, 'ok');
               }
-          }
+          //}
         }
     }
 

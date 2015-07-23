@@ -72,6 +72,18 @@ class Column extends ProdObject
      */
     protected $operations = array();
     
+    /**
+     * HTML style for table cells
+     * @var string
+     */
+    protected $style = '';
+    
+    /**
+     * True for columns containing bytes information
+     * @var boolean
+     */
+    protected $is_base_1024 = FALSE;
+    
     public function __construct()
     {
 
@@ -96,7 +108,6 @@ class Column extends ProdObject
         $this->title = $title;
         return $this;
     }
-    
 
     /**
      * Return the column Human Title
@@ -105,6 +116,17 @@ class Column extends ProdObject
     public function getTitle()
     {
         return (!isset( $this->title ))? '' : $this->title;
+    }
+
+    public function setStyle( $style )
+    {
+        $this->style = $style;
+        return $this;
+    }
+
+    public function getStyle()
+    {
+        return (!isset( $this->style ))? '' : $this->style;
     }
 
     /**
@@ -123,6 +145,18 @@ class Column extends ProdObject
     }
     
 
+    public function flagBase1024( $bool )
+    {
+        $this->is_base_1024 = (int) $bool;
+        return $this;
+    }
+    
+
+    public function isBase1024()
+    {
+        return (int) $this->is_base_1024;
+    }
+    
     /**
      * Set the Is-in-tooltip status
      * @param boolean $bool
@@ -223,9 +257,9 @@ class Column extends ProdObject
         return (! array_key_exists($env , $this->invalid_envs));
     }
     
-    public function render( $data, $env )
+    public function render( $data )
     {
-        if ( ! $this->validateEnv($env)) return FALSE;
+       // if ( ! $this->validateEnv($env)) return FALSE;
         
         $out = '';
         
@@ -255,7 +289,6 @@ class Column extends ProdObject
 
         // final Format functions
         $unit = '';
-        $style = '';
         $key = '';
         foreach ($this->format_list as $k => $format) {
             
@@ -283,13 +316,11 @@ class Column extends ProdObject
 
                 case 'human_int':
                     $out = number_format($out, 0);
-                    $style = 'text-align: right';
                     break;
                     
 
                 case 'human_bytes':
                     $out = format_size($out);
-                    $style = 'text-align: right';
                     break;
 
                 case 'id':
@@ -311,7 +342,6 @@ class Column extends ProdObject
 
                 case 'interval':
                     $out = format_interval(REQUEST_TIME - $out, 2);
-                    $style = 'text-align: right';
                     break;
 
                 default:
@@ -323,7 +353,7 @@ class Column extends ProdObject
             $out = $out. '&nbsp;' . $unit;
         }
         
-        if ( 'table' == $env ) {
+        /*if ( 'table' == $env ) {
             
             $cell = array(
                 'data' => $out
@@ -333,7 +363,7 @@ class Column extends ProdObject
             }
 
             return $cell;
-        }
+        }*/
         
         return $out;
     }

@@ -44,11 +44,23 @@ function prod_admin_ajax_json_def( $data_id ) {
     try {
         switch ($data_id) {
 
-            case 'db_top':
-                $db_reader = \Drupal\Prod\Db\Reader::getInstance();
-                $def = $db_reader->getTopTablesDefinition();
-                $def['graph_url'] = url('admin/reports/prod/ajax/', array('alias' => TRUE,));
+            case 'db_dbs':
+                $db_reader = \Drupal\Prod\Db\Reader::getInstance($data_id);
+                $def = $db_reader->getDatabasesDefinition();
+                $def['graph_url'] = url('admin/reports/prod/ajax/data/', array('alias' => TRUE,));
                 break;
+
+            case 'db_top':
+                $db_reader = \Drupal\Prod\Db\Reader::getInstance($data_id);
+                $def = $db_reader->getTopTablesDefinition();
+                $def['graph_url'] = url('admin/reports/prod/ajax/data/', array('alias' => TRUE,));
+                break;
+
+                case 'db_top_history':
+                    $db_reader = \Drupal\Prod\Db\Reader::getInstance($data_id);
+                    $def = $db_reader->getTopTablesHistoryDefinition();
+                    $def['graph_url'] = url('admin/reports/prod/ajax/data/', array('alias' => TRUE,));
+                    break;
 
             default:
                 throw new ProdException('Unknown graphic data id');
@@ -73,14 +85,39 @@ function prod_admin_ajax_json_def( $data_id ) {
  * 
  * @param unknown $dataid
  */
-function prod_admin_ajax_json_result( $data_id, $rows_per_page=20, $page=1, $sort='full_size' ) {
+function prod_admin_ajax_json_result( $data_id ) {
+  
   $data = '';
   try {
     switch ($data_id) {
 
+        case 'db_dbs':
+            $db_reader = \Drupal\Prod\Db\Reader::getInstance($data_id);
+            $data = $db_reader->getDatabasesData();
+            break;
+
         case 'db_top':
-            $db_reader = \Drupal\Prod\Db\Reader::getInstance();
-            $data = $db_reader->getTopTables($rows_per_page, (int) $page, $sort, 'all', 'json');
+            $db_reader = \Drupal\Prod\Db\Reader::getInstance($data_id);
+            
+            $rows_per_page= (int) $_GET['rows'];
+            if (empty($rows_per_page)) $rows_per_page = 25;
+            $page = (int) $_GET['page'];
+            if (empty($page)) $page = 1;
+            $sort=$_GET['sort'];
+            // TODO filter sort
+            $data = $db_reader->getTopTablesData($rows_per_page, $page, $sort, 'all');
+            break;
+
+        case 'db_top_history':
+            $db_reader = \Drupal\Prod\Db\Reader::getInstance($data_id);
+
+            $rows_per_page= (int) $_GET['rows'];
+            if (empty($rows_per_page)) $rows_per_page = 25;
+            $page = (int) $_GET['page'];
+            if (empty($page)) $page = 1;
+            $sort=$_GET['sort'];
+            // TODO filter sort
+            $data = $db_reader->getTopTablesHistoryData(rows_per_page, $page, $sort, 'all');
             break;
 
         default:
@@ -117,23 +154,25 @@ function prod_admin_page_db() {
   
   $results = array();
 
+  // Databases
+  $db_reader = \Drupal\Prod\Db\Reader::getInstance('db_dbs');
+  $results['db-databases'] = array(
+          'title' => t('Databases'),
+          'form' => null,
+          'graph_id' => $db_reader->getid(),
+          'graph_url' => url('admin/reports/prod/ajax/def/', array('alias' => TRUE,)),
+  );
+  
   // Top tables
-  $db_reader = \Drupal\Prod\Db\Reader::getInstance();
-  $data = $db_reader->getTopTables();
+  $db_reader = \Drupal\Prod\Db\Reader::getInstance('db_top');
 
   $results['db-tables-top'] = array(
       'title' => t('Top Tables'),
-      'table' => array(
-        '#header'    => $data['meta']['headers'],
-        '#rows'      => $data['rows'],
-        '#caption'   => t('Raw data table'),
-        '#colgroups' => array(),
-        '#theme'     => 'table',
-        '#empty'     => t('No statistic data available. Check filters and check that associated trackers are enabled.'),
-      ),
+      //'#caption'   => t('Raw data table'),
+      //  '#empty'     => t('No statistic data available. Check filters and check that associated trackers are enabled.'),
       'form' => drupal_get_form('prod_report_top_table_form', 25, 1),
-      'graph_id' => 'db_top',
-      'graph_url' => url('admin/reports/prod/ajax/', array('alias' => TRUE,)),
+      'graph_id' => $db_reader->getid(),
+      'graph_url' => url('admin/reports/prod/ajax/def/', array('alias' => TRUE,)),
   );
   // Feed the Databases list on the form
   $dbs = $db_reader->getAvailableDatabases();
@@ -142,6 +181,7 @@ function prod_admin_page_db() {
     reset($dbs);
     $results['db-tables-top']['form']['filters']['db']['#default_value'] = key($dbs);
   }
+  
   
   /*
   $results['db-tables-list'] = array(
@@ -157,6 +197,24 @@ function prod_admin_page_db() {
   );
   */
 
+  // Top tables History
+  $db_reader = \Drupal\Prod\Db\Reader::getInstance('db_top_history');
+  $results['db-tables-top-history'] = array(
+          'title' => t('Top Tables History'),
+          //'#caption'   => t('Raw data table'),
+          //  '#empty'     => t('No statistic data available. Check filters and check that associated trackers are enabled.'),
+          'form' => drupal_get_form('prod_report_top_table_form', 25, 1),
+          'graph_id' => $db_reader->getid(),
+          'graph_url' => url('admin/reports/prod/ajax/def/', array('alias' => TRUE,)),
+  );
+  // Feed the Databases list on the form
+  $dbs = $db_reader->getAvailableDatabases();
+  $results['db-tables-top-history']['form']['filters']['db']['#options'] = $dbs;
+  if (is_array($dbs)) {
+      reset($dbs);
+      $results['db-tables-top-history']['form']['filters']['db']['#default_value'] = key($dbs);
+  }
+  
   return theme('prod_admin_display_results', array('results' => $results));
 }
 

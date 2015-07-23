@@ -11,10 +11,19 @@ use Drupal\Prod\Error\Drupal\Prod\Error;
  */
 class Nagios extends ProdObject
 {
-
+    protected static $instance;
+    
+    public static function getInstance()
+    {
+        if (!isset(self::$instance)) {
+            self::$instance = new Nagios();
+        }
+        return self::$instance;
+    }
+    
     public function check(&$output, &$perf) {
         
-        $status = PROD_MONITORING_SUCCESS;
+        $status = PROD_MONITORING_OK;
         $messages = array();
         $output = '';
         $perf = '';
@@ -42,20 +51,20 @@ class Nagios extends ProdObject
                     // stop processing modules and exit right now
                     break 2;
                 case PROD_MONITORING_WARNING:
-                    if ( (PROD_MONITORING_SUCCESS === $status)
+                    if ( (PROD_MONITORING_OK === $status)
                        ||(PROD_MONITORING_PENDING === $status) 
                        ||(PROD_MONITORING_UNKNOWN === $status) ) {
                         $status = $result['status']; 
                     }
                     break;
                 case PROD_MONITORING_UNKNOWN:
-                    if ( (PROD_MONITORING_SUCCESS === $status)
+                    if ( (PROD_MONITORING_OK === $status)
                        ||(PROD_MONITORING_PENDING === $status) ) {
                         $status = $result['status']; 
                     }
                     break;
                 case PROD_MONITORING_PENDING:
-                    if ( (PROD_MONITORING_SUCCESS === $status) ) {
+                    if ( (PROD_MONITORING_OK === $status) ) {
                         $status = $result['status']; 
                     }
                     break;

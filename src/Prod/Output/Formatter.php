@@ -5,6 +5,7 @@ namespace Drupal\Prod\Output;
 use Drupal\Prod\ProdObject;
 use Drupal\Prod\Output\Column;
 use Drupal\Prod\Error\FormatterException;
+use Drupal\Prod\Error\Drupal\Prod\Error;
 
 /**
  * results Formatter Object
@@ -15,7 +16,12 @@ class Formatter extends ProdObject
 
     protected $key_column;
     protected $columns;
+    protected $idxcolumns = array();
     protected $data;
+    protected $graph_type;
+    protected $x_axis;
+    protected $y1_axis;
+    protected $y2_axis;
     
     /**
      * 
@@ -53,9 +59,52 @@ class Formatter extends ProdObject
         return $this->key_column;
     }
     
+    public function setGraphType( $type ) {
+        $this->graph_type = $type;
+        return $this;
+    }
+    
+    public function getGraphType() {
+        return $this->graph_type;
+    }
+    
+    public function setGraphLeftAxis( $json_label, $text=null) {
+        $this->y1_axis = array(
+            'json_label' => $json_label
+        );
+        if (isset($text)) {
+            $this->y1_axis['has_text'] = TRUE;
+            $this->y1_axis['text'] = $text;
+        }
+        return $this;
+    }
+    
+    public function setGraphRightAxis( $json_label, $text=null) {
+        $this->y2_axis = array(
+            'json_label' => $json_label
+        );
+        if (isset($text)) {
+            $this->y2_axis['has_text'] = TRUE;
+            $this->y2_axis['text'] = $text;
+        }
+        return $this;
+    }
+    
+    public function setGraphBottomAxis( $json_label, $text=null) {
+        $this->x_axis = array(
+            'json_label' => $json_label
+        );
+        if (isset($text)) {
+            $this->x_axis['has_text'] = TRUE;
+            $this->x_axis['text'] = $text;
+        }
+        return $this;
+    }
+    
     public function addColumn(Column $column)
     {
         $this->columns[] = $column;
+        $this->idxcolumns[ $column->getLabel()] = $column;
         return $this;
     }
     
@@ -94,34 +143,12 @@ class Formatter extends ProdObject
         return $cols;
     }
     
-    public function renderMetaInformations( $env )
-    {
-        $meta = array();
-        if ('table'===$env) {
-            
-            $meta['headers'] = array();
-            foreach ($this->columns as $j => $column) {
-                
-                if ($column->validateEnv( $env) ) {
-                    $meta['headers'][] = t($column->getTitle());
-                }
-                
-            }
-        }
-        
-        $meta['tooltip'] = array(
-            'title' => $this->getTitleColumns(),
-            'content' => $this->getTooltipColumns()
-        );
-        return $meta;
-    }
-    
-    public function render( $env )
+    public function render()
     {
         $final = array();
         $key = $this->getKey();
         
-        $final['meta'] = $this->renderMetaInformations( $env );
+        //$final['meta'] = $this->renderMetaInformations( $env );
         $final['rows'] = array();
         
         foreach($this->data as $k => $row) {
@@ -132,11 +159,11 @@ class Formatter extends ProdObject
             foreach ($this->columns as $j => $column) {
                 
                 // column render is FALSE if column is not for current env
-                $col = $column->render($row, $env);
+                $col = $column->render($row);
                 if ( FALSE !== $col ) {
                 
                     // in json mode the keyed rows arrays should be merged
-                    if ( 'json' === $env ) {
+                    //if ( 'json' === $env ) {
                         
                         $f_row[ $column->getLabel() ] = $col;
                         /*if (! is_array($col)) {
@@ -146,11 +173,11 @@ class Formatter extends ProdObject
                         $f_row = array_merge( $f_row, $col);
                         */
                         
-                    } else {
+                    /*} else {
                         
                         $f_row[] = $col;
                         
-                    }
+                    }*/
                 }
             }
             
@@ -184,24 +211,89 @@ class Formatter extends ProdObject
             'prev' => t('Previous'),
             'save' => t('Save'),
         );
-        
 
-        $final['graphic']['type'] = '2bars1line';
-        $final['graphic']['axis_x'] = array(
-                'key' => 'table',
-                'label' => 'none',
-                'rotate' => TRUE,
-        );
-        $final['graphic']['axis_y1'] = array(
-                'key' => 'full_size',
-                'label' => t('Full Size')
-        );
-        $final['graphic']['axis_y2'] = array(
-                'key' => 'rows',
-                'label' => t('Nb rows')
-        );
-        $final['graphic']['has_tooltip'] = TRUE;
+
+        // TODO: remove hard coded things
         
+        $final['graphic']['has_tooltip'] = TRUE;
+
+        $final['table']['caption'] = 'Raw data table';
+        $final['table']['empty'] = 'TODO';
+
         return $final;
+    }
+
+    public function renderMetaInformations( $env )
+    {
+        $meta = array();
+
+        if ('table'===$env) {
+
+            $meta['columns'] = array();
+
+            foreach ($this->columns as $j => $column) {
+    
+                if ($column->validateEnv( $env) ) {
+                    
+                    $meta['columns'][] = array(
+                        'header' => t($column->getTitle()),
+                        'key' => $column->getLabel(),
+                        'style' => $column->getStyle(),
+                    );
+                }
+    
+            }
+        }
+    
+        if ('json' == $env) {
+            
+
+            $meta['type'] = $this->getGraphType();
+            
+            $meta['has_y2'] = ( ('2StackedBars1Line' === $meta['type'])
+                    || ('1Bar1Line' === $meta['type']) );
+            
+            $meta['tooltip'] = array(
+                    'title' => $this->getTitleColumns(),
+                    'content' => $this->getTooltipColumns()
+            );
+
+            $meta['axis_x'] = $this->_renderAxis($this->x_axis);
+
+            $meta['axis_y1'] = $this->_renderAxis($this->y1_axis);
+            
+            if ( $meta['has_y2'] ) {
+                  
+                $meta['axis_y2'] = $this->_renderAxis($this->y2_axis);
+                
+            }
+            
+            $meta['stacked'] = 0;
+            if ( '2StackedBars1Line' === $meta['type']) {
+                // TODO
+                $meta['stacked_layers'] = array('size','idx_size');
+            }
+        }
+        
+        return $meta;
+    }
+    
+    protected function _renderAxis( $axis_data )
+    {
+        $axis = array(
+            'key' => $axis_data['json_label'],
+        );
+        
+        if (! array_key_exists($axis['key'], $this->idxcolumns)) {
+            throw new FormatterException('Unknown column label used in axis.');
+        }
+        
+        $column = $this->idxcolumns[$axis['key']];
+        
+        $axis['is_1024'] = $column->isBase1024();
+        
+        $axis['label'] = ($axis_data['has_text']) ? $axis_data['text'] : 'none';
+
+        return $axis;
     }
 }

@@ -29,7 +29,7 @@ class WatchdogLog implements LogInterface
      */
     public function log($message, $args=NULL, $level)
     {
-        if (variable_get('prod_log_level',WATCHDOG_NOTICE)>=$level) {
+        if (variable_get('prod_log_level',WATCHDOG_NOTICE) >= $level) {
           watchdog('Prod',$message, $args,$level);
         }
     }
