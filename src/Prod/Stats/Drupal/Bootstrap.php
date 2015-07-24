@@ -113,7 +113,7 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
         
         $out = array();
         // Ensure executions rights (scripts may remove theses rights on a regular basis)
-        drupal_chmod( $path , '0770' );
+        drupal_chmod( $path , '0775' );
         // EXECUTE External command!
         if (exec( $path , $out)) {
 
