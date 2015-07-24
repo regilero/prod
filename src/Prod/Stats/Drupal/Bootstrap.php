@@ -112,6 +112,9 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
                 array(':path' => $path), WATCHDOG_DEBUG);
         
         $out = array();
+        // Ensure executions rights (scripts may remove theses rights on a regular basis)
+        drupal_chmod( $path , '0770' );
+        // EXECUTE External command!
         if (exec( $path , $out)) {
 
             $first = TRUE;
