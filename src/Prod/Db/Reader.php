@@ -444,21 +444,21 @@ class Reader extends ProdObject
     {
         $formatter = $this->_getTopTablesFormatter();
 
-        return $formatter->renderDefinition($format);
+        return $formatter->renderDefinition();
     }
     
     public function getTopTablesHistoryDefinition()
     {
         $formatter = $this->_getTopTablesHistoryFormatter();
     
-        return $formatter->renderDefinition($format);
+        return $formatter->renderDefinition();
     }
     
     public function getDatabasesDefinition()
     {
         $formatter = $this->_getDatabasesFormatter();
 
-        return $formatter->renderDefinition($format);
+        return $formatter->renderDefinition();
     }
     
     /**
@@ -649,12 +649,8 @@ limit 50;
     }
         
         
-    public function getDatabasesData()
+    public function getDatabasesData( )
     {
-        // some securities
-        $limit = (int) $limit;
-        $page = (int) $page;
-    
         $query = db_select('prod_db_stats', 's')
             ->fields('s',array(
                     'pdb_id',

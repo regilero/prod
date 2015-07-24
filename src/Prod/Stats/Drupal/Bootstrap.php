@@ -130,7 +130,9 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
                     $line_split = explode('=',$line);
                     if ( array_key_exists($line_split[0], $this->known_times)) {
 
-                        $this->known_times[$line_split[0]]['value'] = ((int) $line_split[1]) * 1000;
+                        // Note: no * 1000 because value is already in milliseconds
+                        // a bootstrap_full_abs=127 means 0.127s
+                        $this->known_times[$line_split[0]]['value'] = ((int) $line_split[1]);
                         $this->known_times[$line_split[0]]['timestamp'] = REQUEST_TIME;
                         
                     }

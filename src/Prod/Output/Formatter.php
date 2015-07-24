@@ -75,6 +75,8 @@ class Formatter extends ProdObject
         if (isset($text)) {
             $this->y1_axis['has_text'] = TRUE;
             $this->y1_axis['text'] = $text;
+        } else {
+            $this->y1_axis['has_text'] = FALSE;
         }
         return $this;
     }
@@ -86,6 +88,8 @@ class Formatter extends ProdObject
         if (isset($text)) {
             $this->y2_axis['has_text'] = TRUE;
             $this->y2_axis['text'] = $text;
+        } else {
+            $this->y2_axis['has_text'] = FALSE;
         }
         return $this;
     }
@@ -97,6 +101,8 @@ class Formatter extends ProdObject
         if (isset($text)) {
             $this->x_axis['has_text'] = TRUE;
             $this->x_axis['text'] = $text;
+        } else {
+            $this->x_axis['has_text'] = FALSE;
         }
         return $this;
     }

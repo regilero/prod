@@ -14,7 +14,7 @@ use Drupal\Prod\Monitoring\Cacti;
 /**
  * Task Handler for Db tools, this is connecting us to the task queue
  */
-class TaskHandler extends Task implements TaskInterface
+class TaskHandler extends Task implements TaskInterface, ProdObserverInterface
 {
 
     /**
@@ -133,7 +133,7 @@ class TaskHandler extends Task implements TaskInterface
         $this->logger->log(__METHOD__, NULL, WATCHDOG_DEBUG);
         
         // number of tables to handle per run
-        $limit = variable_get('prod_stats_batch_limit',100);
+        $limit = variable_get('prod_stats_batch_limit',50);
         
         foreach($databases as $identifier => $databases_arr) {
         

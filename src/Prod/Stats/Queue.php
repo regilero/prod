@@ -287,15 +287,12 @@ class Queue extends ProdObservable
                 
             } else {
                 
-                // Premature ending, all other timestamper task records are in the future
+                // Premature ending, all other timestamped task records are in the future
                 // maybe because we've just been running/re-sched it before.
 
                 // This task should be running now! *******
-                $this->logger->log("Avoid running Stat task run for :module :: :name :current < :timestamp.", array(
-                        ':module' => $task->getTaskModule(),
-                        ':name' => $task->getTaskName(),
+                $this->logger->log("No task to run, all tasks planned after :current.", array(
                         ':current' => $current,
-                        ':timestamp' => $timestamp
                 ), WATCHDOG_DEBUG);
                 
                 break;

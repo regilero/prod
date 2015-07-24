@@ -442,6 +442,11 @@ class Definition Extends ProdObject
             ->execute();
     }
     
+    /**
+     * 
+     * @param StatInterface $stat
+     * @return boolean : FALSE if everythin was right <- WARNING!
+     */
     protected function _detectProblems( $stat )
     {
         if ( !isset($this->last_entries[1][0])

@@ -117,7 +117,7 @@ function prod_admin_ajax_json_result( $data_id ) {
             if (empty($page)) $page = 1;
             $sort=$_GET['sort'];
             // TODO filter sort
-            $data = $db_reader->getTopTablesHistoryData(rows_per_page, $page, $sort, 'all');
+            $data = $db_reader->getTopTablesHistoryData($rows_per_page, $page, $sort, 'all');
             break;
 
         default:
