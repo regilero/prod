@@ -3,6 +3,7 @@ description = "Provides a usefull bunch of administrative tools"
 core = 7.x
 package = Prod
 php = 5.3
+version = "7.x-1.0"
 
 files[] = src/Prod/Error/Exception.php
 files[] = src/Prod/Error/DevelopperException.php
