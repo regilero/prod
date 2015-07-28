@@ -163,7 +163,7 @@ function prod_admin_page_db() {
           'graph_url' => url('admin/reports/prod/ajax/def/', array('alias' => TRUE,)),
   );
   
-  // Top tables
+  // Top tables --------------------------
   $db_reader = \Drupal\Prod\Db\Reader::getInstance('db_top');
 
   $results['db-tables-top'] = array(
@@ -176,28 +176,16 @@ function prod_admin_page_db() {
   );
   // Feed the Databases list on the form
   $dbs = $db_reader->getAvailableDatabases();
-  $results['db-tables-top']['form']['filters']['db']['#options'] = $dbs;
-  if (is_array($dbs)) {
-    reset($dbs);
-    $results['db-tables-top']['form']['filters']['db']['#default_value'] = key($dbs);
-  }
-  
-  
-  /*
-  $results['db-tables-list'] = array(
-    'title' => t('Databases Tables'),
-    'table' => array(
-      '#header' => array('foo2','bar2'),
-      '#rows' => array(array('foo2','bar2')),
-      '#caption'=>'',
-      '#colgroups'=>array(),
-      '#theme' => 'table',
-      '#empty' => t('No statistic data available. Check filters and check that associated trackers are enabled.'),
-    )
+  $results['db-tables-top']['form']['filters']['db']['#options'] = array_merge(
+          array(0 => $results['db-tables-top']['form']['filters']['db']['#empty_option']),
+          $dbs
   );
-  */
+  $results['db-tables-top']['form']['filters']['db']['#default_value'] = 0;
 
-  // Top tables History
+  
+  
+  // Top tables History ----------------------
+  
   $db_reader = \Drupal\Prod\Db\Reader::getInstance('db_top_history');
   $results['db-tables-top-history'] = array(
           'title' => t('Top Tables History'),
@@ -209,11 +197,12 @@ function prod_admin_page_db() {
   );
   // Feed the Databases list on the form
   $dbs = $db_reader->getAvailableDatabases();
-  $results['db-tables-top-history']['form']['filters']['db']['#options'] = $dbs;
-  if (is_array($dbs)) {
-      reset($dbs);
-      $results['db-tables-top-history']['form']['filters']['db']['#default_value'] = key($dbs);
-  }
+  $results['db-tables-top-history']['form']['filters']['db']['#options'] = array_merge(
+          array(0 => $results['db-tables-top-history']['form']['filters']['db']['#empty_option']),
+          $dbs
+  );
+  $results['db-tables-top-history']['form']['filters']['db']['#default_value'] = 0;
+  
   
   return theme('prod_admin_display_results', array('results' => $results));
 }
@@ -227,6 +216,7 @@ function prod_report_top_table_form($form, &$form_state, $nb_rows,$page) {
     '#type' => 'select',
     '#title' => t('Database'),
     '#options' => array(),
+    '#empty_option' => '--' . t('All databases') . '--',
   );
   $form['filters']['nbelt'] = array(
     '#type' => 'select',

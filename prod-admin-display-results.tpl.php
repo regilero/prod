@@ -271,7 +271,7 @@ function initTable( graph ) {
     if ( graph.tablezone.empty() ) return false;
 
     var table_def = graph.def.table;
-    
+
     graph.table = { main : graph.tablezone.append('table')
         .attr('class', 'table table-striped prod-report-table')
     };
