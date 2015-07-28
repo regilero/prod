@@ -92,9 +92,9 @@ class Reader extends ProdObject
         
         $col = new Column();
         $col->mapColumn('pdb_id')
+            ->setLabel('id')
             ->addFormat('id')
-            ->setTitle('id')
-            ->setLabel('id');
+            ->setTitle('id');
         $formatter->addColumn( $col );
         
         $col = new Column();
@@ -106,24 +106,24 @@ class Reader extends ProdObject
                 ')' => 'str'
         ))
         ->addFormat('check_plain')
+            ->setLabel('db')
             ->flagInTitle(TRUE)
-            ->setTitle('Db')
-            ->setLabel('db');
+            ->setTitle('Db');
         $formatter->addColumn( $col );
         
         $col = new Column();
         $col->mapColumn('pdb_table')
+            ->setLabel('table')
             ->addFormat('check_plain')
             ->flagInTitle(TRUE)
-            ->setTitle('Db Table')
-            ->setLabel('table');
+            ->setTitle('Db Table');
         $formatter->addColumn( $col );
         
         $col = new Column();
         $col->mapColumn('pdb_full_size')
-            ->addFormat('undo_factor100')
-            ->setTitle('Full Size')
             ->setLabel('full_size')
+            ->addFormat('undo_factor100')
+            ->setTitle('Full Size')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
             ->addInvalidEnv('table');
@@ -131,10 +131,10 @@ class Reader extends ProdObject
         
         $col = new Column();
         $col->mapColumn('pdb_full_size')
+            ->setLabel('full_size_h')
             ->addFormat('undo_factor100')
             ->addFormat('human_bytes')
             ->setTitle('Full Size')
-            ->setLabel('full_size_h')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
             ->flagInTooltip(TRUE);
@@ -142,10 +142,10 @@ class Reader extends ProdObject
         
         $col = new Column();
         $col->mapColumn('pdb_size')
-            ->addFormat('undo_factor100')
-            ->addFormat('human_bytes')
-            ->setTitle('Size')
             ->setLabel('size_h')
+            ->addFormat('undo_factor100')
+            ->addFormat('human_bytes')
+            ->setTitle('Size')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
             ->flagInTooltip(TRUE);
@@ -153,18 +153,19 @@ class Reader extends ProdObject
         
         $col = new Column();
         $col->mapColumn('pdb_size')
+            ->setLabel('size')
             ->addFormat('undo_factor100')
             ->setTitle('Size')
-            ->setLabel('size')
             ->flagBase1024(TRUE)
-            ->addInvalidEnv('table');
+            ->addInvalidEnv('table')
+            ->flagStacked();
         $formatter->addColumn( $col );
         
         $col = new Column();
         $col->mapColumn('pdb_idx_size')
+            ->setLabel('idx_size_h')
             ->addFormat('undo_factor100')
             ->addFormat('human_bytes')
-            ->setLabel('idx_size_h')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
             ->setTitle('Index Size')
@@ -173,18 +174,19 @@ class Reader extends ProdObject
         
         $col = new Column();
         $col->mapColumn('pdb_idx_size')
-            ->addFormat('undo_factor100')
             ->setLabel('idx_size')
+            ->addFormat('undo_factor100')
             ->setTitle('Index Size')
             ->flagBase1024(TRUE)
-            ->addInvalidEnv('table');
+            ->addInvalidEnv('table')
+            ->flagStacked();
         $formatter->addColumn( $col );
         
         $col = new Column();
         $col->mapColumn('pdb_nb_rows')
+            ->setLabel('rows_h')
             ->addFormat('undo_factor100')
             ->addFormat('human_int')
-            ->setLabel('rows_h')
             ->setStyle('text-align: right')
             ->setTitle('Nb Rows')
             ->flagInTooltip(TRUE)
@@ -193,18 +195,18 @@ class Reader extends ProdObject
         
         $col = new Column();
         $col->mapColumn('pdb_nb_rows')
-            ->addFormat('undo_factor100')
             ->setLabel('rows')
+            ->addFormat('undo_factor100')
             ->setTitle('Nb Rows')
             ->addInvalidEnv('table');
         $formatter->addColumn( $col );
         
         $col = new Column();
         $col->mapColumn('average_row_size')
+            ->setLabel('avg_row_size_h')
             ->addFormat('3_dec')
             ->addFormat('human_bytes')
             ->flagBase1024(TRUE)
-            ->setLabel('avg_row_size_h')
             ->setTitle('Average Row Size')
             ->setStyle('text-align: right')
             ->flagInTooltip(TRUE);
@@ -212,25 +214,25 @@ class Reader extends ProdObject
         
         $col = new Column();
         $col->mapColumn('average_row_size')
+            ->setLabel('avg_row_size')
             ->addFormat('3_dec')
             ->flagBase1024(TRUE)
-            ->setLabel('avg_row_size')
             ->setTitle('Average Row Size')
             ->addInvalidEnv('table');
         $formatter->addColumn( $col );
         
         $col = new Column();
         $col->mapColumn('pdb_ugroup')
-            ->addFormat('check_plain')
             ->setLabel('category')
+            ->addFormat('check_plain')
             ->setTitle('Category')
             ->flagInTooltip(TRUE);
         $formatter->addColumn( $col );
         
         $col = new Column();
         $col->mapColumn('pdb_timestamp')
-            ->addFormat('interval')
             ->setLabel('timestamp')
+            ->addFormat('interval')
             ->setTitle('Last Check')
             ->setStyle('text-align: right');
         $formatter->addColumn( $col );

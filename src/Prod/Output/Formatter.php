@@ -149,6 +149,18 @@ class Formatter extends ProdObject
         return $cols;
     }
     
+    public function getStackedColumns()
+    {
+        $cols = array();
+        foreach ($this->columns as $j => $column) {
+            if ($column->isStacked()) {
+                $cols[] = $column->getLabel();
+            }
+        
+        }
+        return $cols;
+    }
+    
     public function render()
     {
         $final = array();
@@ -169,11 +181,11 @@ class Formatter extends ProdObject
                 if ( FALSE !== $col ) {
                 
                     // in json mode the keyed rows arrays should be merged
-                    //if ( 'json' === $env ) {
+                    //if ( 'graphic' === $env ) {
                         
                         $f_row[ $column->getLabel() ] = $col;
                         /*if (! is_array($col)) {
-                            throw new FormatterException('Column ' . $j . ' is missing the json key!');
+                            throw new FormatterException('Column ' . $j . ' is missing the graphic key!');
                         }
                         
                         $f_row = array_merge( $f_row, $col);
@@ -206,10 +218,9 @@ class Formatter extends ProdObject
         $final = array();
         $key = $this->getKey();
     
-        $envs = array('json', 'table');
+        $envs = array('graphic', 'table');
         foreach( $envs as $env ) {
-            $key = ('json'===$env)? 'graphic': $env;
-            $final[$key] = $this->renderMetaInformations( $env );
+            $final[$env] = $this->renderMetaInformations( $env );
         }
         
         $final['buttons'] = array(
@@ -251,7 +262,7 @@ class Formatter extends ProdObject
             }
         }
     
-        if ('json' == $env) {
+        if ('graphic' == $env) {
             
 
             $meta['type'] = $this->getGraphType();
@@ -276,8 +287,8 @@ class Formatter extends ProdObject
             
             $meta['stacked'] = 0;
             if ( '2StackedBars1Line' === $meta['type']) {
-                // TODO
-                $meta['stacked_layers'] = array('size','idx_size');
+                $meta['stacked'] = 1;
+                $meta['stacked_layers'] = $this->getStackedColumns();
             }
         }
         

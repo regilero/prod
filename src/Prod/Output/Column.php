@@ -35,12 +35,18 @@ class Column extends ProdObject
      * @var boolean
      */
     protected $is_in_title = FALSE;
-    
+
     /**
      * Column used in tooltip's content
      * @var boolean
      */
     protected $is_in_tooltip = FALSE;
+
+    /**
+     * Column used as a stacked layer value
+     * @var boolean
+     */
+    protected $is_stacked = FALSE;
     
     /**
      * In single column mode (@see $single_column_mode), the name of the input column
@@ -133,28 +139,42 @@ class Column extends ProdObject
      * Set the Is-in-tooltip-title status
      * @param boolean $bool
      */
-    public function flagInTitle( $bool ) 
+    public function flagInTitle( $bool=TRUE ) 
     {
-        $this->is_in_title = (int) $bool;
+        $this->is_in_title = (bool) $bool;
         return $this;
     }
     
     public function isInTitle()
     {
-        return $this->is_in_title;
+        return (bool)$this->is_in_title;
+    }
+
+    /**
+     * Set the Stacked layer status
+     * @param boolean $bool
+     */
+    public function flagStacked( $bool=TRUE )
+    {
+        $this->is_stacked = (bool) $bool;
+        return $this;
     }
     
-
-    public function flagBase1024( $bool )
+    public function isStacked()
     {
-        $this->is_base_1024 = (int) $bool;
+        return (bool) $this->is_stacked;
+    }
+
+    public function flagBase1024( $bool=TRUE )
+    {
+        $this->is_base_1024 = (bool) $bool;
         return $this;
     }
     
 
     public function isBase1024()
     {
-        return (int) $this->is_base_1024;
+        return (bool) $this->is_base_1024;
     }
     
     /**
