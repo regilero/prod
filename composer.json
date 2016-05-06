@@ -1,0 +1,13 @@
+{
+    "name" : "regilero/prod",
+    "type" : "drupal-module",
+    "description" : "Production tools module for Drupal. Monitoring tools, file system analysis, etc.",
+    "homepage" : "http://github.com/regilero/prod",
+    "license" : "GPL-2",
+    "authors" : [{
+            "name" : "regilero",
+            "email" : "regis.leroy@makina-corpus.com"
+        },
+    ],
+    "minimum-stability" : "dev"
+}
