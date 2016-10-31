@@ -63,6 +63,16 @@ function prod_menu() {
     'file path'        => drupal_get_path('module', 'prod'),
     'type'             => MENU_CALLBACK
   );
+  $items['admin/reports/prod/ajax/data/level/%/%'] = array(
+    'title'            => t('Ajax connector for Prod data - RRD'),
+    'description'      => 'Prod Database Trackers reports',
+    'page callback'    => 'prod_admin_ajax_json_result_rrd',
+    'page arguments'   => array(6,7),
+    'access arguments' => array('access prod module stats'),
+    'file'             => 'prod.admin.inc',
+    'file path'        => drupal_get_path('module', 'prod'),
+    'type'             => MENU_CALLBACK
+  );
   
   $items['admin/reports/prod'] = array(
     'title'            => t('Prod'),

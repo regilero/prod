@@ -31,7 +31,8 @@ function prod_admin_config_rrd_form() {
 
 function prod_add_report_pages_js() {
     drupal_add_library('system', 'drupal.collapse');
-    drupal_add_js("https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js");
+    drupal_add_js("https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.js");
+    //drupal_add_js("https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js");
 }
 
 /**
@@ -56,11 +57,12 @@ function prod_admin_ajax_json_def( $data_id ) {
                 $def['graph_url'] = url('admin/reports/prod/ajax/data/', array('alias' => TRUE,));
                 break;
 
-                case 'db_top_history':
-                    $db_reader = \Drupal\Prod\Db\Reader::getInstance($data_id);
-                    $def = $db_reader->getTopTablesHistoryDefinition();
-                    $def['graph_url'] = url('admin/reports/prod/ajax/data/', array('alias' => TRUE,));
-                    break;
+            case 'db_top_history':
+                $level = (int) $_GET['level'];
+                $db_reader = \Drupal\Prod\Db\Reader::getInstance($data_id);
+                $def = $db_reader->getTopTablesHistoryDefinition();
+                $def['graph_url'] = url('admin/reports/prod/ajax/data/level/' . $level . '/', array('alias' => TRUE,));
+                break;
 
             default:
                 throw new ProdException('Unknown graphic data id');
@@ -83,7 +85,7 @@ function prod_admin_ajax_json_def( $data_id ) {
 /**
  * Main Ajax entry point for extracting graphs in json format - Datas
  * 
- * @param unknown $dataid
+ * @param string $dataid
  */
 function prod_admin_ajax_json_result( $data_id ) {
   
@@ -108,18 +110,6 @@ function prod_admin_ajax_json_result( $data_id ) {
             $data = $db_reader->getTopTablesData($rows_per_page, $page, $sort, 'all');
             break;
 
-        case 'db_top_history':
-            $db_reader = \Drupal\Prod\Db\Reader::getInstance($data_id);
-
-            $rows_per_page= (int) $_GET['rows'];
-            if (empty($rows_per_page)) $rows_per_page = 25;
-            $page = (int) $_GET['page'];
-            if (empty($page)) $page = 1;
-            $sort=$_GET['sort'];
-            // TODO filter sort
-            $data = $db_reader->getTopTablesHistoryData($rows_per_page, $page, $sort, 'all');
-            break;
-
         default:
             throw new ProdException('Unknown graphic data id');
     }
@@ -136,7 +126,47 @@ function prod_admin_ajax_json_result( $data_id ) {
   }
   exit;
 }
+/**
+ * Main Ajax entry point for extracting graphs in json format for RRD graphs
+ *
+ * @param int $level RRD graph level
+ * 
+ * @param string $dataid
+ */
+function prod_admin_ajax_json_result_rrd( $level, $data_id ) {
 
+    $data = '';
+    try {
+        switch ($data_id) {
+
+            case 'db_top_history':
+                $db_reader = \Drupal\Prod\Db\Reader::getInstance($data_id);
+
+                $rows_per_page= (int) $_GET['rows'];
+                if (empty($rows_per_page)) $rows_per_page = 25;
+                $page = (int) $_GET['page'];
+                if (empty($page)) $page = 1;
+                $sort=$_GET['sort'];
+                // TODO filter sort
+                $data = $db_reader->getTopTablesHistoryData($rows_per_page, $page, $sort, 'all', $level);
+                break;
+
+            default:
+                throw new ProdException('Unknown graphic data id');
+        }
+
+        $data['error'] = FALSE;
+        drupal_json_output($data);
+
+    } catch (Exception $e) {
+        $data = array(
+                'error' => TRUE,
+                'error_msg' => $e->getMessage(),
+        );
+        drupal_json_output($data);
+    }
+    exit;
+}
 function prod_admin_page_db() {
   
   prod_add_report_pages_js();
@@ -191,12 +221,21 @@ function prod_admin_page_db() {
           'title' => t('Top Tables History'),
           //'#caption'   => t('Raw data table'),
           //  '#empty'     => t('No statistic data available. Check filters and check that associated trackers are enabled.'),
-          'form' => drupal_get_form('prod_report_top_table_form', 25, 1),
+          'form' => drupal_get_form('prod_report_top_table_form', 3, 1),
           'graph_id' => $db_reader->getid(),
           'graph_url' => url('admin/reports/prod/ajax/def/', array('alias' => TRUE,)),
+          'graph_rrd' => TRUE,
   );
   // Feed the Databases list on the form
   $dbs = $db_reader->getAvailableDatabases();
+  $results['db-tables-top-history']['form']['filters']['nbelt']['#options'] = array(
+          1 => '1',
+          3 => '3',
+          5 => '5',
+          10 => '10',
+          15 => '15',
+  );
+  $results['db-tables-top-history']['form']['filters']['nbelt']['#default_value'] = 3;
   $results['db-tables-top-history']['form']['filters']['db']['#options'] = array_merge(
           array(0 => $results['db-tables-top-history']['form']['filters']['db']['#empty_option']),
           $dbs

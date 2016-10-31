@@ -245,7 +245,7 @@ class Reader extends ProdObject
         $formatter = new Formatter();
         
         $formatter->setGraphType('nBars')
-            ->setGraphLeftAxis('full_size', t('Full Size'))
+            ->setGraphLeftAxis('y', t('Full Size'))
             ->setGraphBottomAxis('time', t('Time'));
         /*
         rs.prs_id,
@@ -254,7 +254,7 @@ class Reader extends ProdObject
         r.pr_timestamp, r.pr_value,r.pr_value_max,r.pr_value_min,
         r.pr_aggregate_level,r.pr_rrd_index
         */
-        
+
         $col = new Column();
         $col->mapColumn('prs_id')
             ->addFormat('id')
@@ -286,9 +286,9 @@ class Reader extends ProdObject
 
         $col = new Column();
         $col->mapColumn('pr_value')
+            ->setLabel('y')
             ->addFormat('undo_factor100')
             ->setTitle('Full Size')
-            ->setLabel('full_size')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
             ->addInvalidEnv('table');
@@ -296,10 +296,10 @@ class Reader extends ProdObject
         
         $col = new Column();
         $col->mapColumn('pr_value')
+            ->setLabel('full_size_h')
             ->addFormat('undo_factor100')
             ->addFormat('human_bytes')
             ->setTitle('Full Size')
-            ->setLabel('full_size_h')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
             ->flagInTooltip(TRUE);
@@ -307,9 +307,9 @@ class Reader extends ProdObject
 
         $col = new Column();
         $col->mapColumn('pr_value_max')
+            ->setLabel('y1')
             ->addFormat('undo_factor100')
             ->setTitle('Max Full Size')
-            ->setLabel('full_size_max')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
             ->addInvalidEnv('table');
@@ -317,10 +317,10 @@ class Reader extends ProdObject
         
         $col = new Column();
         $col->mapColumn('pr_value_max')
-            ->addFormat('undo_factor100')
-            ->addFormat('human_bytes')
-            ->setTitle('Max Full Size')
             ->setLabel('full_size_max_h')
+            ->addFormat('undo_factor100')
+            ->addFormat('human_bytes')
+            ->setTitle('Max Full Size')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
             ->flagInTooltip(TRUE);
@@ -328,9 +328,9 @@ class Reader extends ProdObject
 
         $col = new Column();
         $col->mapColumn('pr_value_min')
+            ->setLabel('y0')
             ->addFormat('undo_factor100')
             ->setTitle('Min Full Size')
-            ->setLabel('full_size_min')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
             ->addInvalidEnv('table');
@@ -338,10 +338,10 @@ class Reader extends ProdObject
         
         $col = new Column();
         $col->mapColumn('pr_value_min')
+            ->setLabel('full_size_min_h')
             ->addFormat('undo_factor100')
             ->addFormat('human_bytes')
             ->setTitle('Min Full Size')
-            ->setLabel('full_size_min_h')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
             ->flagInTooltip(TRUE);
@@ -352,6 +352,8 @@ class Reader extends ProdObject
             ->setLabel('time')
             ->setTitle('time');
         $formatter->addColumn( $col );
+        
+        $formatter->stackByValue('table');
         
         return $formatter;
     }
@@ -545,8 +547,10 @@ class Reader extends ProdObject
      * @param string $type 'full_size'/'nb_rows'/'idx_size'/'size'
      *
      * @param string $db 'all' or the database name
+     * 
+     * @param int $level RRD level
      */
-    public function getTopTablesHistoryData( $limit=20, $page=1, $type='full_size', $db='all')
+    public function getTopTablesHistoryData( $limit=20, $page=1, $type='full_size', $db='all', $level)
     {
         // some securities
         $limit = (int) $limit;
@@ -593,17 +597,19 @@ class Reader extends ProdObject
             $result = $query->execute();
             
             $tops_ids = array();
-            $tops = array();
             foreach($result as $k => $record) {
                 
                 $tops_ids[] = $record->pdb_id;
-                $tops = $record;
             }
             
-            // Now extract historical data for theses ids
-            $data=$this->_extractHistory($tops_ids, 3);
+            if ( 0 === count($tops_ids)) {
+                $data = array();
+            } else {
+                // Now extract historical data for theses ids
+                $data=$this->_extractHistory($tops_ids, $level);
+            }
             
-            $formatter = $this->_getTopTablesFormatter();
+            $formatter = $this->_getTopTablesHistoryFormatter();
             
             $formatter->setData($data);
             
@@ -628,7 +634,12 @@ limit 50;
         if (!is_array($ids) || 0===count($ids)) {
             return array();
         }
-        $query = db_query("
+        $args =  array(
+            ':level' => $level,
+        );
+        // no injection here, our list is only ints
+        $id_list = implode( ",", $ids);
+        $results = db_query("
             select rs.prs_id,
                    d.pdb_identifier, d.pdb_db_name, d.pdb_table,
                    r.pr_timestamp, r.pr_value,r.pr_value_max,r.pr_value_min,
@@ -639,14 +650,10 @@ limit 50;
                   INNER JOIN {prod_db_stats} d On d.pdb_id = rs.prs_stat_pid
                 WHERE pq.ptq_name='dbCollector'
                   AND rs.prs_stat_col='full_size'
-                  AND rs.prs_stat_pid IN (:id_list)
+                  AND rs.prs_stat_pid IN ( ". $id_list ." )
                   AND r.pr_aggregate_level = :level
-                ORDER BY rs.prs_id, r.pr_aggregate_level, r.pr_rrd_index;
-                ", array(
-                    ':id_list' => implode( ",", $ids),
-                    ':level' => $level,
-                ));
-        $results = $query->execute();
+                ORDER BY rs.prs_id, r.pr_aggregate_level, r.pr_rrd_index DESC;
+                ", $args);
         return $results;
     }
         

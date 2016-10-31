@@ -22,6 +22,7 @@ class Formatter extends ProdObject
     protected $x_axis;
     protected $y1_axis;
     protected $y2_axis;
+    protected $stack_pivot = null;
     
     /**
      * 
@@ -168,45 +169,68 @@ class Formatter extends ProdObject
         
         //$final['meta'] = $this->renderMetaInformations( $env );
         $final['rows'] = array();
+
+        $pivot_mode = (isset($this->stack_pivot));
+        if ($pivot_mode) {
+            // This will be used to remember which pivot was already added in results
+            $pivot_idx = array();
+        }
         
         foreach($this->data as $k => $row) {
-            
+
             $f_row = array();
             $idx = (isset($key))? $row->{$key} : FALSE;
+            $pivot = FALSE;
             
             foreach ($this->columns as $j => $column) {
                 
                 // column render is FALSE if column is not for current env
-                $col = $column->render($row);
-                if ( FALSE !== $col ) {
+                $col_label = $column->getLabel();
+                $col_render = $column->render($row);
                 
-                    // in json mode the keyed rows arrays should be merged
-                    //if ( 'graphic' === $env ) {
-                        
-                        $f_row[ $column->getLabel() ] = $col;
-                        /*if (! is_array($col)) {
-                            throw new FormatterException('Column ' . $j . ' is missing the graphic key!');
-                        }
-                        
-                        $f_row = array_merge( $f_row, $col);
-                        */
-                        
-                    /*} else {
-                        
-                        $f_row[] = $col;
-                        
-                    }*/
+                if ( FALSE !== $col_render ) {
+                    $f_row[ $col_label ] = $col_render;
                 }
+                
+                if ( $pivot_mode && ( $col_label === $this->stack_pivot ) ) {
+                    $pivot = $col_render;
+                }
+
             }
-            
+/*
+            var_dump($pivot);
+            var_dump($row->pdb_table);
+*/
             if (FALSE !== $idx) {
-                    
-                    $final['rows'][$idx] = $f_row;
-                    
+
+                $final['rows'][$idx] = $f_row;
+
             } else {
 
-                    $final['rows'][] = $f_row;
+                if ( $pivot_mode ) {
                     
+                    if (!array_key_exists($pivot, $pivot_idx)) {
+                        // create the record for this pivot value
+                        $final['rows'][] = array(
+                                'name' => $pivot,
+                                'values' => array(),
+                        );
+                        // memorize position of the pivot record
+                        $pivot_idx[$pivot] = count($final['rows'])-1;
+                    }
+
+                    $record_idx = $pivot_idx[$pivot];
+
+                    // stack result in the pivot values
+                    $final['rows'][$record_idx]['values'][] = $f_row;
+
+                } else {
+            
+                    // simply stack results
+                    $final['rows'][] = $f_row;
+
+                }
+                
             }
         }
         
@@ -286,9 +310,13 @@ class Formatter extends ProdObject
             }
             
             $meta['stacked'] = 0;
+            $meta['pivot'] = 0;
             if ( '2StackedBars1Line' === $meta['type']) {
                 $meta['stacked'] = 1;
                 $meta['stacked_layers'] = $this->getStackedColumns();
+            }
+            if ( 'nBars' === $meta['type']) {
+                $meta['pivot'] = 1;
             }
         }
         
@@ -312,5 +340,18 @@ class Formatter extends ProdObject
         $axis['label'] = ($axis_data['has_text']) ? $axis_data['text'] : 'none';
 
         return $axis;
+    }
+    
+    /**
+     * Set the Stacked layer json output based on the given column label value
+     * @param unknown $label
+     */
+    public function stackByValue( $label )
+    {
+        if (! array_key_exists($label, $this->idxcolumns)) {
+            throw new FormatterException('Unknown column label used in stack pivot.');
+        }
+        $this->stack_pivot = $label;
+        return $this;
     }
 }
