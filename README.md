@@ -9,7 +9,7 @@ It requires a php version >=5.5
 The goal is to :
 
  * extract statistics on various internal (sizes of tables, number of active users, nodes by types, etc)
- * optionnaly store some history on these trackers (with a custom RRD --Round Robin Database-- implmentation in the database)
+ * optionnaly store some history on these trackers (with a custom RRD --Round Robin Database-- implementation in the database)
  * use d3js to produce nice reports
  * provide drush entries for collecting stats, doing nagios checks, collecting tasks for external trackers like cacti
  * planned: tracking filesystems changes, watermarking the code and reporting new files or altered files.

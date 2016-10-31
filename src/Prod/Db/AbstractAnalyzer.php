@@ -186,7 +186,7 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
      * Add or update a db record containing summ of tables data.
      *
      * @return TableInterface object (the created or updated record)
-     * 
+     *
      * @throws Drupal\Prod\Error\DbAnalyzerException
      */
     public function ManageDbRecord()
@@ -241,21 +241,21 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
         return $sumTable;
 
     }
-    
+
     /**
      * Internally set the next scheduling time
      */
     public function scheduleNextRun()
     {
         if (is_null($this->timestamp)) {
-    
+
             // new record, schedule right now
             $this->setScheduling(REQUEST_TIME);
-    
+
         } else {
             $this->setScheduling(
                     REQUEST_TIME
-                    + variable_get('prod_default_rrd_interval', 300)
+                    + (int) variable_get('prod_default_rrd_interval', 300)
             );
         }
     }

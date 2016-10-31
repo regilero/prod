@@ -14,13 +14,13 @@ if (!class_exists('Drupal\Prod\Db\AnalyzerInterface')) {
   // This is a PHP >= 5.3 code, but it is required for this module.
   spl_autoload_register(function($classname) { // PSR-4 autoloader
     if (0 === strpos($classname, 'Drupal\\Prod\\')) {
-      $filename = dirname(__FILE__) 
-          . DIRECTORY_SEPARATOR 
-          . 'src' 
-          . DIRECTORY_SEPARATOR 
-          . 'Prod' 
-          . DIRECTORY_SEPARATOR 
-          . str_replace('\\', DIRECTORY_SEPARATOR, substr($classname, 12)) 
+      $filename = dirname(__FILE__)
+          . DIRECTORY_SEPARATOR
+          . 'src'
+          . DIRECTORY_SEPARATOR
+          . 'Prod'
+          . DIRECTORY_SEPARATOR
+          . str_replace('\\', DIRECTORY_SEPARATOR, substr($classname, 12))
           . '.php';
         return (bool)require_once $filename;
     }
@@ -33,15 +33,15 @@ if (!class_exists('Drupal\Prod\Db\AnalyzerInterface')) {
  * Implements hook_menu().
  */
 function prod_menu() {
-  
+
   $items = array();
-  
+
   /****************************************************************************
    *
    * Reports
    *
    ****************************************************************************/
-  
+
 
   $items['admin/reports/prod/ajax/def/%'] = array(
     'title'            => t('Ajax connector for Prod data - definitions'),
@@ -73,7 +73,7 @@ function prod_menu() {
     'file path'        => drupal_get_path('module', 'prod'),
     'type'             => MENU_CALLBACK
   );
-  
+
   $items['admin/reports/prod'] = array(
     'title'            => t('Prod'),
     'description'      => 'Prod Trackers',
@@ -84,7 +84,7 @@ function prod_menu() {
     'type'             => MENU_NORMAL_ITEM,
     'weight'           => -100,
   );
-  
+
 
   $items['admin/reports/prod/db'] = array(
     'title'            => t('Database Stats'),
@@ -105,7 +105,7 @@ function prod_menu() {
     'file path'        => drupal_get_path('module', 'prod'),
     'type'             => MENU_LOCAL_TASK,
   );
-  
+
   $items['admin/reports/prod/nodes'] = array(
     'title'            => t('Nodes Stats'),
     'description'      => 'Prod Users Trackers',
@@ -115,13 +115,13 @@ function prod_menu() {
     'file path'        => drupal_get_path('module', 'prod'),
     'type'             => MENU_LOCAL_TASK,
   );
-  
+
   /****************************************************************************
    *
    * Settings
    *
    ****************************************************************************/
-  
+
   $items['admin/config/prod'] = array(
       'title'            => t("Prod Configuration"),
       'description'      => "Manage Prod module settings.",
@@ -132,6 +132,17 @@ function prod_menu() {
       'file path'        => drupal_get_path('module', 'prod'),
       'type'             => MENU_NORMAL_ITEM,
   );
+  $items['admin/config/prod/main'] = array(
+      'title'            => t("Prod Configuration"),
+      'description'      => "Manage Prod module settings.",
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('prod_admin_config_form'),
+      'access arguments' => array('access prod module configuration'),
+      'file'             => 'prod.admin.inc',
+      'file path'        => drupal_get_path('module', 'prod'),
+      'weight' => 10,
+      'type'             => MENU_DEFAULT_LOCAL_TASK,
+  );
   $items['admin/config/prod/collector'] = array(
       'title'            => t('Prod collectors'),
       'description'      => "Manage Prod module's collectors settings",
@@ -140,7 +151,8 @@ function prod_menu() {
       'access arguments' => array('access prod module configuration'),
       'file'             => 'prod.admin.inc',
       'file path'        => drupal_get_path('module', 'prod'),
-      'type'             => MENU_DEFAULT_LOCAL_TASK,
+      'weight' => 20,
+      'type'             => MENU_LOCAL_TASK,
   );
   $items['admin/config/prod/rrd'] = array(
       'title'            => t('Prod RRD'),
@@ -150,9 +162,10 @@ function prod_menu() {
       'access arguments' => array('access prod module configuration'),
       'file'             => 'prod.admin.inc',
       'file path'        => drupal_get_path('module', 'prod'),
+      'weight' => 30,
       'type'             => MENU_LOCAL_TASK,
   );
-  
+
   return $items;
 }
 
@@ -213,10 +226,10 @@ function prod_cronapi($op, $job = NULL) {
     );
   }
   // TODO: seems the file inclusion does not work, check that
-    $items['drush_prod_drupal_stats_indexer'] = array(
-      'description' => 'Prod2: collect statistics and perform RRD rotations if needed',
-      'rule' => '0/5 * * * *', // Every 5 minutes
-    );
+  $items['drush_prod_drupal_stats_indexer'] = array(
+    'description' => 'Prod2: collect statistics and perform RRD rotations if needed',
+    'rule' => '0/5 * * * *', // Every 5 minutes
+  );
 /*
   $items['prod_report'] = array(
     'description' => 'Send the report',
@@ -294,5 +307,5 @@ function template_preprocess_prod_admin_display_results(&$variables) {
   $variables['pager'] = isset($variables['block']['#pager']) ? $variables['block']['#pager'] : NULL;
   $variables['more_link'] = isset($variables['block']['#more_link']) ? $variables['block']['#more_link'] : NULL;
 */
-  
+
 }

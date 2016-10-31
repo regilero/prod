@@ -24,10 +24,10 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
      * @var \Drupal\Prod\Stats\Drupal\User object (for Singleton)
      */
     protected static $instance;
-    
+
     // Stat provider id. This comes from Task
     protected $id;
-    
+
     // Task informations
     // the module, here
     protected $task_module='Drupal\\Prod\\Stats\\Drupal\\User';
@@ -46,7 +46,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
     protected $day_connected_time = 0;
     protected $month_connected;
     protected $month_connected_time = 0;
-    
+
     /**
      * Singleton implementation
      *
@@ -54,42 +54,42 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
      */
     public static function getInstance()
     {
-    
+
         if (!isset(self::$instance)) {
-    
+
             self::$instance = new User();
         }
-    
+
         return self::$instance;
     }
-    
+
     public function __construct()
     {
         return $this->initHelpers();
     }
-    
+
     /**
      * Ensure all Helpers (log) are loaded into this object
      *
      */
     public function initHelpers()
     {
-        
+
         parent::initHelpers();
 
         $this->logger->log(__METHOD__, NULL, WATCHDOG_DEBUG);
-        
+
         // register in the Queue of StatsProviders
         $prodQueue = Queue::getInstance();
         $prodQueue->attach($this);
-        
+
         // register our callback for Cacti Output
         $cactiObservable = Cacti::getInstance();
         $cactiObservable->attach($this);
-        
+
         return $this;
     }
-    
+
     /**
      * This is the function called when we need to recompute the stats
      */
@@ -99,29 +99,29 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
         $this->logger->log(__METHOD__, NULL, WATCHDOG_DEBUG);
 
         $total = $active = $enabled = $five_min = $day = $month = 0;
-        
+
         // count users by status
         $result = db_query("
             select status,count(*) as counter from {users} group by status
         ");
         foreach($result as $record) {
-            
+
             if (0 == $record->status) {
-                
+
               $total += $record->counter;
-              
+
             } else {
-                
+
               $enabled = $record->counter;
               $total += $enabled;
-              
+
             }
         }
         $this->logger->log("User.total: " . $total, NULL, WATCHDOG_DEBUG);
         $this->logger->log("User.enabled: " . $enabled, NULL, WATCHDOG_DEBUG);
         $this->setTotalUsers($total * 1000);
         $this->setEnabledUSers($enabled * 1000);
-        
+
         // count users having at least one connection
         $result = db_query("
             select count(*) as counter from {users} where status = 1 and access> 0
@@ -131,7 +131,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
         }
         $this->logger->log("User.active: " . $active, NULL, WATCHDOG_DEBUG);
         $this->setActiveUsers($active * 1000);
-        
+
         //connected with activity in the last 5 minutes
         $result = db_query("
             select count(*) as counter
@@ -144,7 +144,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
         }
         $this->logger->log("User.conn.5_min: " . $five_min, NULL, WATCHDOG_DEBUG);
         $this->setRecentConnected($five_min * 1000);
-        
+
         // connected today
         // TODO: mysql only?
         $result = db_query("
@@ -158,7 +158,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
         }
         $this->logger->log("User.conn.day: " . $day, NULL, WATCHDOG_DEBUG);
         $this->setDayConnected($day * 1000);
-        
+
         // connected month
         // TODO: mysql only?
         $result = db_query("
@@ -168,7 +168,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
             and (access > UNIX_TIMESTAMP(
                   CONCAT(
                       DATE_ADD(
-                            LAST_DAY( 
+                            LAST_DAY(
                                DATE_SUB( CURRENT_DATE(), INTERVAL 31 DAY )
                              )
                             , INTERVAL 1 DAY
@@ -188,7 +188,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
 
         $this->manageRRD();
     }
-    
+
 
 
     protected function getTotalUsers()
@@ -196,10 +196,10 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
         if (!isset($this->total_users)) {
             throw new DevelopperException('Object is not loaded, cannot extract total_users stat');
         }
-        
+
         return $this->total_users;
     }
-    
+
     protected function setTotalUsers($nb)
     {
         $this->total_users = (int) $nb;
@@ -211,31 +211,31 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
         if (!isset($this->enabled_users)) {
             throw new DevelopperException('Object is not loaded, cannot extract enabled_users stat');
         }
-        
+
         return $this->enabled_users;
     }
-    
+
     protected function setEnabledUSers($nb)
     {
         $this->enabled_users = (int) $nb;
         return $this;
-        
+
     }
-    
+
     protected function getActiveUsers()
     {
         if (!isset($this->active_users)) {
             throw new DevelopperException('Object is not loaded, cannot extract active_users stat');
         }
-        
+
         return $this->active_users;
     }
-    
+
     protected function setActiveUsers( $nb ) {
 
         $this->active_users = (int) $nb;
         return $this;
-        
+
     }
 
     protected function getRecentConnected()
@@ -243,15 +243,15 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
         if (!isset($this->recent_connected)) {
             throw new DevelopperException('Object is not loaded, cannot extract online_users connected stat');
         }
-    
+
         return $this->recent_connected;
     }
-    
+
     protected function setRecentConnected( $nb ) {
-    
+
         $this->recent_connected = (int) $nb;
         return $this;
-    
+
     }
 
     protected function getMonthConnected()
@@ -259,31 +259,31 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
         if (!isset($this->month_connected)) {
             throw new DevelopperException('Object is not loaded, cannot extract month_active_users connected stat');
         }
-    
+
         return $this->month_connected;
     }
-    
+
     protected function setMonthConnected( $nb ) {
-    
+
         $this->month_connected = (int) $nb;
         return $this;
-    
+
     }
-    
+
     protected function getDayConnected()
     {
         if (!isset($this->day_connected)) {
             throw new DevelopperException('Object is not loaded, cannot extract day_active_users connected stat');
         }
-    
+
         return $this->day_connected;
     }
-    
+
     protected function setDayConnected( $nb ) {
-    
+
         $this->day_connected = (int) $nb;
         return $this;
-    
+
     }
     /**
      * Get the stats provider id
@@ -297,7 +297,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
         }
         return $this->id;
     }
-    
+
     /**
      * Save (upsert) the stats records in prod_drupal_stats table.
      *
@@ -308,7 +308,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
     public function save()
     {
         $this->logger->log('Saving StatProvider records for Users Stats ',NULL, WATCHDOG_DEBUG);
-    
+
         // Upsert the record
         try {
             db_merge('prod_drupal_stats')
@@ -323,7 +323,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
                   'pds_enable' => 1,
               ) )
               ->execute();
-            
+
             db_merge('prod_drupal_stats')
               -> key( array(
                   'ptq_stat_tid' => $this->getId(),
@@ -336,7 +336,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
                   'pds_enable' => 1,
               ) )
               ->execute();
-            
+
             db_merge('prod_drupal_stats')
               -> key( array(
                   'ptq_stat_tid' => $this->getId(),
@@ -388,13 +388,13 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
                       'pds_enable' => 1,
                 ) )
                 ->execute();
-                
+
         } catch (Exception $e) {
             throw new StatTaskException(__METHOD__ . ": Unable to save the Task Stat record. " . $e->getMessage());
         }
-        
+
         return $this;
-    
+
     }
 
     protected function _loadStats()
@@ -403,14 +403,14 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
         if (!isset($this->id)) {
             throw new DevelopperException('Cannot create/load stats elements before having a real Task id, maybe save this object before?');
         }
-        
+
         // get the records
         try {
             $query = db_select('prod_drupal_stats', 's');
             $query->fields('s')
               ->condition('ptq_stat_tid',$this->getId());
             $result = $query->execute();
-            
+
             foreach ($result as $res) {
                 switch ($res->pds_name) {
                     case 'user_active':
@@ -444,13 +444,13 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
                         );
                 }
             }
-        
+
         } catch (Exception $e) {
             throw new DbAnalyzerException(__METHOD__ . ": Unable to reload the user stats records. " . $e->getMessage());
         }
-        
+
     }
-    
+
     /**
      * Get the list of stats provided by this provider
      *
@@ -459,11 +459,11 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
      */
     public function getStatsList()
     {
-        
+
         $this->_loadStats();
-        
+
         $res = array();
-        
+
         if ( 0 !== $this->total_users_time) {
             $res['user_total'] = $stat_user_total = new Stat(
               $this->getId(),
@@ -503,7 +503,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
                 'Recently connected users'
             );
         }
-        
+
         if ( 0 !== $this->day_connected_time ) {
             $res['day_active_users'] = new Stat(
               $this->getId(),
@@ -513,7 +513,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
               'Day connected users'
             );
         }
-        
+
         if ( 0 !== $this->month_connected_time ) {
             $res['month_active_users'] = new Stat(
               $this->getId(),
@@ -523,10 +523,10 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
               'Month connected users'
             );
         }
-    
+
         return $res;
     }
-    
+
     /**
      * Get the default RRD settings ('interval','points_per_graph','points_per_aggregate')
      * for this provider.
@@ -539,37 +539,37 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
     {
         return self::getDefaultRrdSettingsUsers();
     }
-    
+
     public static function getDefaultRrdSettingsUsers()
     {
         $defaults =& drupal_static(__METHOD__);
-    
+
         if (!isset($defaults)) {
             // get generic defaults
             $defaults = array(
-                'interval' => variable_get(
+                'interval' => (int) variable_get(
                 'prod_default_rrd_interval',
                 300
             ),
-                'points_per_graph' => variable_get(
+                'points_per_graph' => (int) variable_get(
                 'prod_default_rrd_points_per_graph',
                 300
             ),
-            'points_per_aggregate' => variable_get(
+            'points_per_aggregate' => (int) variable_get(
                 'prod_default_rrd_points_per_aggregate',
                 5
                 ),
             );
             // check for users overrides
-            $defaults['interval'] = variable_get(
+            $defaults['interval'] = (int) variable_get(
                 'prod_default_rrd_interval_users',
                  $defaults['interval']
             );
-            $defaults['points_per_graph'] = variable_get(
+            $defaults['points_per_graph'] = (int) variable_get(
                  'prod_default_rrd_points_per_graph_users',
                  $defaults['points_per_graph']
             );
-            $defaults['points_per_aggregate'] = variable_get(
+            $defaults['points_per_aggregate'] = (int) variable_get(
                    'prod_default_rrd_points_per_aggregate_users',
                    $defaults['points_per_aggregate']
             );

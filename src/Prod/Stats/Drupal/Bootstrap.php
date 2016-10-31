@@ -24,10 +24,10 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
      * @var \Drupal\Prod\Stats\Bootstrap object (for Singleton)
      */
     protected static $instance;
-    
+
     // Stat provider id. This comes from Task
     protected $id;
-    
+
     protected $task_module='Drupal\\Prod\\Stats\\Drupal\\Bootstrap';
     // running task collector function
     protected $task_name='collect';
@@ -59,42 +59,42 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
      */
     public static function getInstance()
     {
-    
+
         if (!isset(self::$instance)) {
-    
+
             self::$instance = new Bootstrap();
         }
-    
+
         return self::$instance;
     }
-    
+
     public function __construct()
     {
         return $this->initHelpers();
     }
-    
+
     /**
      * Ensure all Helpers (log) are loaded into this object
      *
      */
     public function initHelpers()
     {
-        
+
         parent::initHelpers();
 
         $this->logger->log(__METHOD__, NULL, WATCHDOG_DEBUG);
-        
+
         // register in the Queue of StatsProviders
         $prodQueue = Queue::getInstance();
         $prodQueue->attach($this);
-        
+
         // register our callback for Cacti Output
         $cactiObservable = Cacti::getInstance();
         $cactiObservable->attach($this);
-        
+
         return $this;
     }
-    
+
 
     /**
      * This is the function called when we need to recompute the stats
@@ -103,14 +103,14 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
     {
 
         $this->logger->log(__METHOD__, NULL, WATCHDOG_DEBUG);
-        
+
         // exec external bootstraper.php file (you need php cli and exec rights on this file)
-        
+
         $path = DRUPAL_ROOT .'/'. drupal_get_path('module', 'prod') . '/bootstrapper.php';
-        
+
         $this->logger->log('External Bootstrapper file path is :path',
                 array(':path' => $path), WATCHDOG_DEBUG);
-        
+
         $out = array();
         // Ensure executions rights (scripts may remove theses rights on a regular basis)
         drupal_chmod( $path , '0775' );
@@ -119,9 +119,9 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
 
             $first = TRUE;
             foreach ($out as $line) {
-                
+
                 $this->logger->log("Exec output line : " . $line, NULL, WATCHDOG_DEBUG);
-                
+
                 if ($first) {
                      if ( 'bootstrapper success run' !== $line ) {
                         $this->logger->log("Bootstrapper time monitor script failure, first line of output is: :line",
@@ -137,14 +137,14 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
                         // a bootstrap_full_abs=127 means 0.127s
                         $this->known_times[$line_split[0]]['value'] = ((int) $line_split[1]);
                         $this->known_times[$line_split[0]]['timestamp'] = REQUEST_TIME;
-                        
+
                     }
                 }
             } // end result loop
         }
 
         $this->save();
-        
+
         $this->manageRRD();
 
     }
@@ -161,7 +161,7 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
         }
         return $this->id;
     }
-    
+
     /**
      * Save (upsert) the stats records in prod_drupal_stats table.
      *
@@ -172,10 +172,10 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
     public function save()
     {
         $this->logger->log('Saving StatProvider records for Bootstrap Times Stats ',NULL, WATCHDOG_DEBUG);
-    
+
         // Upsert the record
         try {
-            
+
             foreach ($this->known_times as $bootstrap => $time_record) {
                 db_merge('prod_drupal_stats')
                   -> key( array(
@@ -193,9 +193,9 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
         } catch (Exception $e) {
             throw new StatTaskException(__METHOD__ . ": Unable to save the Task Stat record. " . $e->getMessage());
         }
-        
+
         return $this;
-    
+
     }
 
     protected function _loadStats()
@@ -204,15 +204,15 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
         if (!isset($this->id)) {
             throw new DevelopperException('Cannot create/load stats elements before having a real Task id, maybe save this object before?');
         }
-        
+
         // get the records
-        
+
         try {
             $query = db_select('prod_drupal_stats', 's');
             $query->fields('s')
               ->condition('ptq_stat_tid',$this->getId());
             $result = $query->execute();
-            
+
             foreach ($result as $res) {
 
                 if (array_key_exists($res->pds_name, $this->known_times)) {
@@ -222,12 +222,12 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
 
                 }
             }
-        
+
         } catch (Exception $e) {
             throw new DbAnalyzerException(__METHOD__ . ": Unable to reload the bootstrap times stats records. " . $e->getMessage());
         }
     }
-    
+
     /**
      * Get the list of stats provided by this provider
      *
@@ -236,13 +236,13 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
      */
     public function getStatsList()
     {
-        
+
         $this->_loadStats();
-        
+
         $res = array();
-        
+
         foreach( $this->known_times as $stat_key => $stat_record) {
-            
+
             $stat = new Stat(
                 $this->getId(),
                 $stat_key,
@@ -250,14 +250,14 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
                 $stat_record['timestamp'],
                 'Total number of published Nodes'
             );
-            
+
             $res[$stat_key] = $stat;
-        
+
         }
-        
+
         return $res;
     }
-    
+
     /**
      * Get the default RRD settings ('interval','points_per_graph','points_per_aggregate')
      * for this provider.
@@ -270,37 +270,37 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
     {
         return self::getDefaultRrdSettingsUsers();
     }
-    
+
     public static function getDefaultRrdSettingsUsers()
     {
         $defaults =& drupal_static(__METHOD__);
-    
+
         if (!isset($defaults)) {
             // get generic defaults
             $defaults = array(
-                'interval' => variable_get(
+                'interval' => (int) variable_get(
                 'prod_default_rrd_interval',
                 300
             ),
-                'points_per_graph' => variable_get(
+                'points_per_graph' => (int) variable_get(
                 'prod_default_rrd_points_per_graph',
                 300
             ),
-            'points_per_aggregate' => variable_get(
+            'points_per_aggregate' => (int) variable_get(
                 'prod_default_rrd_points_per_aggregate',
                 5
                 ),
             );
             // check for nodes overrides
-            $defaults['interval'] = variable_get(
+            $defaults['interval'] = (int) variable_get(
                 'prod_default_rrd_interval_nodes',
                  $defaults['interval']
             );
-            $defaults['points_per_graph'] = variable_get(
+            $defaults['points_per_graph'] = (int) variable_get(
                  'prod_default_rrd_points_per_graph_nodes',
                  $defaults['points_per_graph']
             );
-            $defaults['points_per_aggregate'] = variable_get(
+            $defaults['points_per_aggregate'] = (int) variable_get(
                    'prod_default_rrd_points_per_aggregate_nodes',
                    $defaults['points_per_aggregate']
             );

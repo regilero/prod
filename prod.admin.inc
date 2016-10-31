@@ -13,17 +13,100 @@ use Drupal\Prod\Error\ProdException;
  * @ingroup forms
  * @see system_settings_form()
  */
-function prod_admin_config_rrd_form() {
-    
+function prod_admin_config_form() {
+
     $form['global'] = array(
-            '#type' => 'fieldset',
-            '#title' => t('Connexion settings'),
+        '#type' => 'fieldset',
+        '#title' => t('Prod Module settings'),
     );
-    $form['global']['prod_rrd_enabled'] = array(
-            '#type' => 'checkbox',
-            '#title' => t('Enable RRD storage'),
-            '#default_value' => variable_get('prod_rrd_enabled', FALSE),
-            '#description' => t('TODO'),
+
+    $form['global']['prod_stats_enabled'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Enable Stats'),
+        '#default_value' => variable_get('prod_stats_enabled', TRUE),
+        '#description' => t('TODO'),
+    );
+    $form['global']['prod_log_level'] = array(
+        '#type' => 'select',
+        '#title' => t('Module internal log level?'),
+        '#default_value' => variable_get('prod_log_level', WATCHDOG_NOTICE),
+        '#options' => array(
+            WATCHDOG_ALERT => 'WATCHDOG_ALERT',
+            WATCHDOG_CRITICAL => 'WATCHDOG_CRITICAL',
+            WATCHDOG_ERROR => 'WATCHDOG_ERROR',
+            WATCHDOG_WARNING => 'WATCHDOG_WARNING',
+            WATCHDOG_NOTICE => 'WATCHDOG_NOTICE',
+            WATCHDOG_INFO => 'WATCHWATCHDOG_INFO',
+            WATCHDOG_DEBUG => 'WATCHDOG_DEBUG',
+        ),
+        '#description' => t('TODO'),
+    );
+    return system_settings_form($form);
+
+}
+
+/**
+ * Form builder; Configure Prod module.
+ *
+ * @ingroup forms
+ * @see system_settings_form()
+ */
+function prod_admin_config_collectors_form() {
+
+    $form['global'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Collector settings'),
+    );
+    $form['global']['prod_stats_batch_limit'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Number of stats to collect per batch'),
+        '#default_value' => variable_get('prod_stats_batch_limit', 100),
+        '#description' => t('TODO'),
+    );
+    $form['global']['prod_db_stats_indexer_use_slave'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Use slave Db connection for stats if available'),
+        '#default_value' => variable_get('prod_db_stats_indexer_use_slave', TRUE),
+        '#description' => t('TODO'),
+    );
+    return system_settings_form($form);
+}
+
+/**
+ * Form builder; Configure Prod module.
+ *
+ * @ingroup forms
+ * @see system_settings_form()
+ */
+function prod_admin_config_rrd_form() {
+
+    $form['global'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('RRD settings'),
+    );
+    $form['global']['prod_stats_rrd_enabled'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Enable RRD storage'),
+        '#default_value' => variable_get('prod_stats_rrd_enabled', FALSE),
+        '#description' => t('TODO'),
+    );
+    $form['global']['prod_default_rrd_interval'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Interval in seconds between RRD points.'),
+        '#default_value' => variable_get('prod_default_rrd_interval', 300),
+        '#description' => t('TODO'),
+    );
+    $form['global']['prod_default_rrd_points_per_graph'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Number of RRD points per graphic'),
+        '#default_value' => variable_get('prod_default_rrd_points_per_graph', 300),
+        '#description' => t('TODO'),
+    );
+    $form['global']['prod_default_rrd_points_per_aggregate'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Number of points per RRD aggregate point'),
+        '#default_value' => variable_get('prod_default_rrd_points_per_aggregate', 5),
+        '#description' => t('TODO'),
     );
     return system_settings_form($form);
 }
@@ -84,11 +167,11 @@ function prod_admin_ajax_json_def( $data_id ) {
 
 /**
  * Main Ajax entry point for extracting graphs in json format - Datas
- * 
+ *
  * @param string $dataid
  */
 function prod_admin_ajax_json_result( $data_id ) {
-  
+
   $data = '';
   try {
     switch ($data_id) {
@@ -100,7 +183,7 @@ function prod_admin_ajax_json_result( $data_id ) {
 
         case 'db_top':
             $db_reader = \Drupal\Prod\Db\Reader::getInstance($data_id);
-            
+
             $rows_per_page= (int) $_GET['rows'];
             if (empty($rows_per_page)) $rows_per_page = 25;
             $page = (int) $_GET['page'];
@@ -116,7 +199,7 @@ function prod_admin_ajax_json_result( $data_id ) {
 
     $data['error'] = FALSE;
     drupal_json_output($data);
-    
+
   } catch (Exception $e) {
     $data = array(
       'error' => TRUE,
@@ -126,11 +209,12 @@ function prod_admin_ajax_json_result( $data_id ) {
   }
   exit;
 }
+
 /**
  * Main Ajax entry point for extracting graphs in json format for RRD graphs
  *
  * @param int $level RRD graph level
- * 
+ *
  * @param string $dataid
  */
 function prod_admin_ajax_json_result_rrd( $level, $data_id ) {
@@ -168,9 +252,9 @@ function prod_admin_ajax_json_result_rrd( $level, $data_id ) {
     exit;
 }
 function prod_admin_page_db() {
-  
+
   prod_add_report_pages_js();
-    
+
   $output = array(
     'content' => array(
       'title' => array(
@@ -181,7 +265,7 @@ function prod_admin_page_db() {
       ),
     )
   );
-  
+
   $results = array();
 
   // Databases
@@ -192,7 +276,7 @@ function prod_admin_page_db() {
           'graph_id' => $db_reader->getid(),
           'graph_url' => url('admin/reports/prod/ajax/def/', array('alias' => TRUE,)),
   );
-  
+
   // Top tables --------------------------
   $db_reader = \Drupal\Prod\Db\Reader::getInstance('db_top');
 
@@ -212,10 +296,10 @@ function prod_admin_page_db() {
   );
   $results['db-tables-top']['form']['filters']['db']['#default_value'] = 0;
 
-  
-  
+
+
   // Top tables History ----------------------
-  
+
   $db_reader = \Drupal\Prod\Db\Reader::getInstance('db_top_history');
   $results['db-tables-top-history'] = array(
           'title' => t('Top Tables History'),
@@ -241,8 +325,8 @@ function prod_admin_page_db() {
           $dbs
   );
   $results['db-tables-top-history']['form']['filters']['db']['#default_value'] = 0;
-  
-  
+
+
   return theme('prod_admin_display_results', array('results' => $results));
 }
 

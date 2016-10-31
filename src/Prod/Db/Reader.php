@@ -10,7 +10,7 @@ use Drupal\Prod\ProdObject;
 
 /**
  * Drupal\Prod\Db\Reader class
- * 
+ *
  * reader of stored statictics data concerning the database.
  */
 class Reader extends ProdObject
@@ -22,7 +22,7 @@ class Reader extends ProdObject
      * keyed by data_id
      */
     protected static $instances;
-    
+
     /**
      * Data id of the Reader instance (can be used in caches of definitions)
      */
@@ -38,12 +38,12 @@ class Reader extends ProdObject
         if (!isset(self::$instances)) {
             self::$instances = array();
         }
-        
+
         if (!array_key_exists($data_id, self::$instances)) {
-    
+
             self::$instances[$data_id] = new Reader($data_id);
         }
-    
+
         return self::$instances[$data_id];
     }
 
@@ -52,12 +52,12 @@ class Reader extends ProdObject
         $this->id = $id;
         return $this->initHelpers();
     }
-    
+
     public function getId()
     {
         return $this->id;
     }
-    
+
     public function getAvailableDatabases() {
         $query = db_select('prod_db_stats', 's')
             ->fields('s',array(
@@ -67,36 +67,36 @@ class Reader extends ProdObject
             ))
             ->condition('pdb_is_database', 1)
             ->condition('pdb_enable', 1);;
-        
+
         $results = $query->execute();
-        
+
         $dbs = array();
         foreach($results as $result) {
-            $dbs[ $result->pdb_id ] = $result->pdb_db_name 
-                . '(' 
+            $dbs[ $result->pdb_id ] = $result->pdb_db_name
+                . '('
                 . $result->pdb_identifier
                 . ')';
         }
-        
+
         return $dbs;
     }
 
     protected function _getTopTablesFormatter()
     {
         $formatter = new Formatter();
-        
+
         $formatter->setGraphType('2StackedBars1Line')
                 ->setGraphLeftAxis('full_size', t('Full Size'))
                 ->setGraphRightAxis('rows', t('Nb Rows'))
                 ->setGraphBottomAxis('table');
-        
+
         $col = new Column();
         $col->mapColumn('pdb_id')
             ->setLabel('id')
             ->addFormat('id')
             ->setTitle('id');
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->setMultipleMap( array(
                 'type' => 'concat',
@@ -110,7 +110,7 @@ class Reader extends ProdObject
             ->flagInTitle(TRUE)
             ->setTitle('Db');
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pdb_table')
             ->setLabel('table')
@@ -118,7 +118,7 @@ class Reader extends ProdObject
             ->flagInTitle(TRUE)
             ->setTitle('Db Table');
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pdb_full_size')
             ->setLabel('full_size')
@@ -128,7 +128,7 @@ class Reader extends ProdObject
             ->setStyle('text-align: right')
             ->addInvalidEnv('table');
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pdb_full_size')
             ->setLabel('full_size_h')
@@ -139,7 +139,7 @@ class Reader extends ProdObject
             ->setStyle('text-align: right')
             ->flagInTooltip(TRUE);
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pdb_size')
             ->setLabel('size_h')
@@ -150,7 +150,7 @@ class Reader extends ProdObject
             ->setStyle('text-align: right')
             ->flagInTooltip(TRUE);
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pdb_size')
             ->setLabel('size')
@@ -160,7 +160,7 @@ class Reader extends ProdObject
             ->addInvalidEnv('table')
             ->flagStacked();
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pdb_idx_size')
             ->setLabel('idx_size_h')
@@ -171,7 +171,7 @@ class Reader extends ProdObject
             ->setTitle('Index Size')
             ->flagInTooltip(TRUE);
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pdb_idx_size')
             ->setLabel('idx_size')
@@ -181,7 +181,7 @@ class Reader extends ProdObject
             ->addInvalidEnv('table')
             ->flagStacked();
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pdb_nb_rows')
             ->setLabel('rows_h')
@@ -192,7 +192,7 @@ class Reader extends ProdObject
             ->flagInTooltip(TRUE)
             ->addInvalidEnv('table');
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pdb_nb_rows')
             ->setLabel('rows')
@@ -200,7 +200,7 @@ class Reader extends ProdObject
             ->setTitle('Nb Rows')
             ->addInvalidEnv('table');
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('average_row_size')
             ->setLabel('avg_row_size_h')
@@ -211,7 +211,7 @@ class Reader extends ProdObject
             ->setStyle('text-align: right')
             ->flagInTooltip(TRUE);
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('average_row_size')
             ->setLabel('avg_row_size')
@@ -220,7 +220,7 @@ class Reader extends ProdObject
             ->setTitle('Average Row Size')
             ->addInvalidEnv('table');
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pdb_ugroup')
             ->setLabel('category')
@@ -228,7 +228,7 @@ class Reader extends ProdObject
             ->setTitle('Category')
             ->flagInTooltip(TRUE);
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pdb_timestamp')
             ->setLabel('timestamp')
@@ -236,14 +236,14 @@ class Reader extends ProdObject
             ->setTitle('Last Check')
             ->setStyle('text-align: right');
         $formatter->addColumn( $col );
-        
+
         return $formatter;
     }
-    
+
     protected function _getTopTablesHistoryFormatter()
     {
         $formatter = new Formatter();
-        
+
         $formatter->setGraphType('nBars')
             ->setGraphLeftAxis('y', t('Full Size'))
             ->setGraphBottomAxis('time', t('Time'));
@@ -261,7 +261,7 @@ class Reader extends ProdObject
             ->setTitle('id')
             ->setLabel('id');
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->setMultipleMap( array(
                 'type' => 'concat',
@@ -275,7 +275,7 @@ class Reader extends ProdObject
             ->setTitle('Db')
             ->setLabel('db');
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pdb_table')
             ->addFormat('check_plain')
@@ -293,7 +293,7 @@ class Reader extends ProdObject
             ->setStyle('text-align: right')
             ->addInvalidEnv('table');
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pr_value')
             ->setLabel('full_size_h')
@@ -314,7 +314,7 @@ class Reader extends ProdObject
             ->setStyle('text-align: right')
             ->addInvalidEnv('table');
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pr_value_max')
             ->setLabel('full_size_max_h')
@@ -335,7 +335,7 @@ class Reader extends ProdObject
             ->setStyle('text-align: right')
             ->addInvalidEnv('table');
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pr_value_min')
             ->setLabel('full_size_min_h')
@@ -346,22 +346,22 @@ class Reader extends ProdObject
             ->setStyle('text-align: right')
             ->flagInTooltip(TRUE);
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pr_timestamp')
             ->setLabel('time')
             ->setTitle('time');
         $formatter->addColumn( $col );
-        
+
         $formatter->stackByValue('table');
-        
+
         return $formatter;
     }
-    
+
     protected function _getDatabasesFormatter()
     {
         $formatter = new Formatter();
-    
+
         $formatter->setGraphType('1Bar1Line')
             ->setGraphLeftAxis('nb_tables', t('Nb Tables'))
             ->setGraphRightAxis('rows', t('Nb Rows'))
@@ -373,7 +373,7 @@ class Reader extends ProdObject
             ->setTitle('id')
             ->setLabel('id');
         $formatter->addColumn( $col );
-    
+
         $col = new Column();
         $col->setMultipleMap( array(
                 'type' => 'concat',
@@ -387,7 +387,7 @@ class Reader extends ProdObject
             ->setTitle('Db')
             ->setLabel('db');
         $formatter->addColumn( $col );
-    
+
         $col = new Column();
         $col->mapColumn('pdb_full_size')
             ->addFormat('undo_factor100')
@@ -395,7 +395,7 @@ class Reader extends ProdObject
             ->setLabel('nb_tables')
             ->addInvalidEnv('table');
         $formatter->addColumn( $col );
-    
+
         $col = new Column();
         $col->mapColumn('pdb_full_size')
             ->addFormat('undo_factor100')
@@ -405,7 +405,7 @@ class Reader extends ProdObject
             ->setStyle('text-align: right')
             ->flagInTooltip(TRUE);
         $formatter->addColumn( $col );
-        
+
         $col = new Column();
         $col->mapColumn('pdb_nb_rows')
             ->addFormat('undo_factor100')
@@ -424,7 +424,7 @@ class Reader extends ProdObject
             ->flagInTooltip(TRUE)
             ->addInvalidEnv('table');
         $formatter->addColumn( $col );
-    
+
         $col = new Column();
         $col->mapColumn('pdb_ugroup')
             ->addFormat('check_plain')
@@ -432,7 +432,7 @@ class Reader extends ProdObject
             ->setTitle('Category')
             ->flagInTooltip(TRUE);
         $formatter->addColumn( $col );
-    
+
         $col = new Column();
         $col->mapColumn('pdb_timestamp')
             ->addFormat('interval')
@@ -440,40 +440,40 @@ class Reader extends ProdObject
             ->setTitle('Last Check')
             ->setStyle('text-align: right');
         $formatter->addColumn( $col );
-    
+
         return $formatter;
     }
-    
+
     public function getTopTablesDefinition()
     {
         $formatter = $this->_getTopTablesFormatter();
 
         return $formatter->renderDefinition();
     }
-    
+
     public function getTopTablesHistoryDefinition()
     {
         $formatter = $this->_getTopTablesHistoryFormatter();
-    
+
         return $formatter->renderDefinition();
     }
-    
+
     public function getDatabasesDefinition()
     {
         $formatter = $this->_getDatabasesFormatter();
 
         return $formatter->renderDefinition();
     }
-    
+
     /**
      * Return the top tables rows
-     * 
+     *
      * @param number $limit how many rows in the top list
-     * 
+     *
      * @param number $page page of result
-     * 
+     *
      * @param string $type 'full_size'/'nb_rows'/'idx_size'/'size'
-     * 
+     *
      * @param string $db 'all' or the database name
      */
     public function getTopTablesData( $limit=20, $page=1, $type='full_size', $db='all')
@@ -481,7 +481,7 @@ class Reader extends ProdObject
         // some securities
         $limit = (int) $limit;
         $page = (int) $page;
-        
+
         $query = db_select('prod_db_stats', 's')
             ->fields('s',array(
                 'pdb_id',
@@ -502,7 +502,7 @@ class Reader extends ProdObject
         if ( 'all' != $db ) {
             $query->condition('pdb_identifier', $db);
         }
-        
+
         switch($type) {
             case 'full_size':
                 $query->orderBy('pdb_full_size','DESC');
@@ -519,26 +519,26 @@ class Reader extends ProdObject
             default:
                 throw new ProdException('Unknown sort parameter used.');
         }
-        
+
         $query->orderBy('pdb_identifier','ASC');
         $query->orderBy('pdb_db_name','ASC');
         $query->orderBy('pdb_table','ASC');
 
         $query->range(($page-1)*$limit,$limit);
-        
+
         $result = $query->execute();
-        
+
         $formatter = $this->_getTopTablesFormatter();
-        
+
         $formatter->setData($result);
-        
+
         return $formatter->render();
 
     }
-    
+
 
     /**
-     * Return the top tables rows hsitorical data
+     * Return the top tables rows historical data
      *
      * @param number $limit how many rows in the top list
      *
@@ -547,7 +547,7 @@ class Reader extends ProdObject
      * @param string $type 'full_size'/'nb_rows'/'idx_size'/'size'
      *
      * @param string $db 'all' or the database name
-     * 
+     *
      * @param int $level RRD level
      */
     public function getTopTablesHistoryData( $limit=20, $page=1, $type='full_size', $db='all', $level)
@@ -555,7 +555,7 @@ class Reader extends ProdObject
         // some securities
         $limit = (int) $limit;
         $page = (int) $page;
-    
+
         // Extract the top table ids
         $query = db_select('prod_db_stats', 's')
             ->fields('s',array(
@@ -570,7 +570,7 @@ class Reader extends ProdObject
             if ( 'all' != $db ) {
                 $query->condition('pdb_identifier', $db);
             }
-            
+
             switch($type) {
                 case 'full_size':
                     $query->orderBy('pdb_full_size','DESC');
@@ -587,36 +587,35 @@ class Reader extends ProdObject
                 default:
                     throw new ProdException('Unknown sort parameter used.');
             }
-            
+
             $query->orderBy('pdb_identifier','ASC');
             $query->orderBy('pdb_db_name','ASC');
             $query->orderBy('pdb_table','ASC');
-    
+
             $query->range(($page-1)*$limit,$limit);
-            
+
             $result = $query->execute();
-            
+
             $tops_ids = array();
             foreach($result as $k => $record) {
-                
+
                 $tops_ids[] = $record->pdb_id;
             }
-            
+
             if ( 0 === count($tops_ids)) {
                 $data = array();
             } else {
                 // Now extract historical data for theses ids
                 $data=$this->_extractHistory($tops_ids, $level);
             }
-            
             $formatter = $this->_getTopTablesHistoryFormatter();
-            
+
             $formatter->setData($data);
-            
+
             return $formatter->render();
-    
+
         }
-    
+
     protected function _extractHistory($ids, $level) {
         /**
         select rs.prs_id, d.pdb_identifier, d.pdb_db_name, d.pdb_table, rs.ptq_stat_tid, rs.prs_stat_pid, rs.prs_stat_col, r.pr_timestamp, r.pr_value,r.pr_value_max,r.pr_value_min, r.pr_aggregate_level,r.pr_rrd_index
@@ -656,8 +655,8 @@ limit 50;
                 ", $args);
         return $results;
     }
-        
-        
+
+
     public function getDatabasesData( )
     {
         $query = db_select('prod_db_stats', 's')
@@ -676,17 +675,17 @@ limit 50;
                 ->condition('pdb_enable', 1);
             // this one does not return $this ...
             $query->addExpression('s.pdb_full_size / s.pdb_nb_rows', 'average_row_size');
-            
+
             $query->orderBy('pdb_identifier','ASC');
             $query->orderBy('pdb_db_name','ASC');
-    
+
             $result = $query->execute();
-            
+
             $formatter = $this->_getDatabasesFormatter();
-            
+
             $formatter->setData($result);
-            
+
             return $formatter->render();
-    
+
         }
 }
