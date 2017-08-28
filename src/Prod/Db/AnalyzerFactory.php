@@ -3,7 +3,6 @@
 namespace Drupal\Prod\Db;
 
 use Drupal\Prod\Error\DbAnalyzerException;
-use Drupal\Prod\Db\Mysql\Analyzer;
 
 /**
  * Drupal\Prod\Db\AnalyzerFactory class
@@ -22,7 +21,7 @@ class AnalyzerFactory
      * @throws Drupal\Prod\Error\DbAnalyzerException
      */
     public static function get($db_arr, $identifier) {
-        
+
         try {
 
             if ( !(is_array($db_arr))

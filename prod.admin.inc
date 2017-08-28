@@ -251,6 +251,7 @@ function prod_admin_ajax_json_result_rrd( $level, $data_id ) {
     }
     exit;
 }
+
 function prod_admin_page_db() {
 
   prod_add_report_pages_js();

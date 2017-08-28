@@ -2,12 +2,9 @@
 
 namespace Drupal\Prod\Stats\Drupal;
 
-use Drupal\Prod\Stats\StatsProviderInterface;
-use Drupal\Prod\ProdObserverInterface;
 use Drupal\Prod\ProdObservable;
 use Drupal\Prod\ProdObject;
 use Drupal\Prod\Monitoring\Cacti;
-use Drupal\Prod\Stats\TaskInterface;
 use Drupal\Prod\Stats\Drupal\DrupalTask;
 use Drupal\Prod\Stats\Queue;
 use Drupal\Prod\Stats\Stat;
@@ -16,23 +13,10 @@ use Drupal\Prod\Error\DevelopperException;
 
 /**
  */
-class User extends DrupalTask implements TaskInterface, StatsProviderInterface, ProdObserverInterface
+abstract class AbstractUser extends DrupalTask
 {
-
-    /**
-     *
-     * @var \Drupal\Prod\Stats\Drupal\User object (for Singleton)
-     */
-    protected static $instance;
-
     // Stat provider id. This comes from Task
     protected $id;
-
-    // Task informations
-    // the module, here
-    protected $task_module='Drupal\\Prod\\Stats\\Drupal\\User';
-    // running task collector function
-    protected $task_name='collect';
 
     protected $total_users;
     protected $total_users_time = 0;
@@ -46,22 +30,6 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
     protected $day_connected_time = 0;
     protected $month_connected;
     protected $month_connected_time = 0;
-
-    /**
-     * Singleton implementation
-     *
-     * @return \Drupal\Prod\Stats\User
-     */
-    public static function getInstance()
-    {
-
-        if (!isset(self::$instance)) {
-
-            self::$instance = new User();
-        }
-
-        return self::$instance;
-    }
 
     public function __construct()
     {
@@ -146,13 +114,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
         $this->setRecentConnected($five_min * 1000);
 
         // connected today
-        // TODO: mysql only?
-        $result = db_query("
-            select count(*) as counter
-            from {users}
-            where status=1
-            and (access > UNIX_TIMESTAMP(CURRENT_DATE()) )
-        ");
+        $result = $this->query_daily_connected_users();
         foreach($result as $record) {
             $day = $record->counter;
         }
@@ -160,23 +122,7 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
         $this->setDayConnected($day * 1000);
 
         // connected month
-        // TODO: mysql only?
-        $result = db_query("
-            select count(*) as counter
-            from {users}
-            where status=1
-            and (access > UNIX_TIMESTAMP(
-                  CONCAT(
-                      DATE_ADD(
-                            LAST_DAY(
-                               DATE_SUB( CURRENT_DATE(), INTERVAL 31 DAY )
-                             )
-                            , INTERVAL 1 DAY
-                      ),
-                      ' 00:00:00'
-                  )
-                ));
-        ");
+        $result = $this->query_monthly_connected_users();
         foreach($result as $record) {
             $month = $record->counter;
         }
@@ -189,7 +135,13 @@ class User extends DrupalTask implements TaskInterface, StatsProviderInterface, 
         $this->manageRRD();
     }
 
+    protected function query_daily_connected_users(){
+        return null;
+    }
 
+    protected function query_monthly_connected_users(){
+        return null;
+    }
 
     protected function getTotalUsers()
     {
