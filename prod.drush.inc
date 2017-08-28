@@ -32,15 +32,13 @@ function prod_drush_command() {
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_FULL, // Full bootstrap.
     'aliases' => array('prodri'),
   );
-  /*
-  $items['prod-report'] = array(
-    'description' => dt("prod stats: generate report and send it"),
+  $items['drush_prod_db_stats'] = array(
+    'description' => dt("prod database stats"),
     'arguments' => array(),
-    'callback' => 'drush_prod_report',
+    'callback' => 'drush_prod_db_stats',
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_FULL, // Full bootstrap.
-    'aliases' => array('prodri'),
+    'aliases' => array('proddb'),
   );
-  */
   $items['prod-monitor-check'] = array(
     'description' => dt("Nagios checker"),
     'arguments' => array(),

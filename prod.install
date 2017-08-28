@@ -269,6 +269,72 @@ function prod_schema() {
         'size' => 'big',
         'not null' => TRUE,
       ),
+      'pdb_seqscan_nb' => array(
+        'description' => "Number of fullscan for this table, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'pdb_seqscan_rows' => array(
+        'description' => "Number of rows on fullscans for this table, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'pdb_idxscan_nb' => array(
+        'description' => "Number of index scans for this table, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'pdb_idxscan_rows' => array(
+        'description' => "Number of rows on index scans this table, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'pdb_inserts' => array(
+        'description' => "Number of inserts for this table, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'pdb_updates'  => array(
+        'description' => "Number of updates for this table, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'pdb_deletes' => array(
+        'description' => "Number of deletes for this table, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'pdb_last_autovaccuum' => array(
+        'description' => "age in seconds of last autovaccuum for this entry, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'pdb_last_autoanalyze' => array(
+        'description' => "age in seconds of last autoanalyze for this entry, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'pdb_nb_autovaccuum'  => array(
+        'description' => "Number of autovaccuum operations for this table, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'pdb_nb_autoanalyze'  => array(
+        'description' => "Number of autoanalyze operations for this table, with 2 decimals",
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
       'pdb_timestamp' => array(
         'description' => "modification time for this entry",
         'type' => 'int',
@@ -505,7 +571,7 @@ function prod_schema() {
       'prod_queue_order_idx' => array('ptq_enable','ptq_timestamp'),
     ),
   );
-  
+
   $schema['prod_drupal_stats'] = array(
     'description' => "Prod Statistics about Drupal internals",
     'fields' => array(
@@ -570,7 +636,7 @@ function prod_schema() {
 
   $schema['cache_prod'] = drupal_get_schema_unprocessed('system', 'cache');
   $schema['cache_prod']['description'] = 'Cache table for Prod module.';
-  
+
   return $schema;
 }
 
@@ -590,7 +656,7 @@ function prod_uninstall() {
   variable_del('prod_fs_watch_crc_enabled');
   variable_del('prod_fs_watch_default_exclusion_list');
   variable_del('prod_log_level');
-  
+
   if (db_table_exists('prod_filesystem')) {
     db_drop_table('prod_filesystem');
   }
@@ -614,3 +680,19 @@ function prod_uninstall() {
   }
 }
 
+/**
+ * Add PostgreSQL related fields on tables trackers
+ */
+function prod_update_7001() {
+  db_add_field('prod_db_stats','pdb_seqscan_nb',array('type' => 'int', 'size' => 'big', 'not null' => FALSE));
+  db_add_field('prod_db_stats','pdb_seqscan_rows',array('type' => 'int', 'size' => 'big', 'not null' => FALSE));
+  db_add_field('prod_db_stats','pdb_idxscan_nb',array('type' => 'int', 'size' => 'big', 'not null' => FALSE));
+  db_add_field('prod_db_stats','pdb_idxscan_rows',array('type' => 'int', 'size' => 'big', 'not null' => FALSE));
+  db_add_field('prod_db_stats','pdb_inserts',array('type' => 'int', 'size' => 'big', 'not null' => FALSE));
+  db_add_field('prod_db_stats','pdb_updates',array('type' => 'int', 'size' => 'big', 'not null' => FALSE));
+  db_add_field('prod_db_stats','pdb_deletes',array('type' => 'int', 'size' => 'big', 'not null' => FALSE));
+  db_add_field('prod_db_stats','pdb_last_autovaccuum',array('type' => 'int', 'size' => 'big', 'not null' => FALSE));
+  db_add_field('prod_db_stats','pdb_last_autoanalyze',array('type' => 'int', 'size' => 'big', 'not null' => FALSE));
+  db_add_field('prod_db_stats','pdb_nb_autovaccuum',array('type' => 'int', 'size' => 'big', 'not null' => FALSE));
+  db_add_field('prod_db_stats','pdb_nb_autoanalyze',array('type' => 'int', 'size' => 'big', 'not null' => FALSE));
+}

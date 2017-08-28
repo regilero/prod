@@ -153,6 +153,23 @@ class TaskHandler extends Task implements TaskInterface, ProdObserverInterface
                 }
             }
 
+
+            /* TODO
+            if ($limit > 0) {
+
+                // still have some place, let's try stats on index
+
+                $indexes = $dbAnalyser->extractIndexes($limit);
+
+                foreach($indexes as $index) {
+
+                    $index->save();
+                    $limit --;
+
+                }
+
+            }*/
+
             // Add a global aggregate record for the database
             // we always do that, no matter about the limits
 

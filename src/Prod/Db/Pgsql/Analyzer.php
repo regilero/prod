@@ -63,9 +63,21 @@ class Analyzer extends AbstractAnalyzer implements AnalyzerInterface
             c.relname as table_name,
             reltuples as table_rows,
             pg_table_size(c.oid) as data_length,
-            pg_indexes_size(c.oid) as index_length
+            pg_indexes_size(c.oid) as index_length,
+            s.seq_scan as seqscan_nb,
+            s.seq_tup_read as seqscan_rows,
+            s.idx_scan as idxscan_nb,
+            s.idx_tup_fetch as idxscan_rows,
+            s.n_tup_ins as inserts,
+            s.n_tup_upd as updates,
+            s.n_tup_del as deletes,
+            (extract(epoch from (now() - s.last_autovacuum))*100)::bigint as last_autovaccuum,
+            (extract(epoch from (now() - s.last_autoanalyze))*100)::bigint as last_autoanalyze,
+            s.autovacuum_count as nb_autovaccuum,
+            s.autoanalyze_count as nb_autoanalyze
         FROM pg_class c
           LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+          LEFT JOIN pg_stat_user_tables s ON c.oid = s.relid
         WHERE c.relkind IN ('r','')
           AND n.nspname <> 'pg_catalog'
           AND n.nspname <> 'information_schema'
@@ -75,6 +87,7 @@ class Analyzer extends AbstractAnalyzer implements AnalyzerInterface
         ";
         return $qry;
     }
+
 
     public function _getQueryFilterTableList()
     {

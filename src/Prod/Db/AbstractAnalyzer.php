@@ -119,7 +119,12 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
             if (is_array($table)) {
 
                 // need to transform this in Drupal\Prod\Db\TableInterface object
-                $otable = TableFactory::get( $this->getDbDriver(), $this->getDbIdentifier(), $this->getDbName(), $table );
+                $otable = TableFactory::get(
+                    $this->getDbDriver(),
+                    $this->getDbIdentifier(),
+                    $this->getDbName(),
+                    $table
+                );
                 $list[] = $otable;
 
             } else {
@@ -131,7 +136,6 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
             }
 
         }
-
         $this->tables = $list;
         return $this;
     }

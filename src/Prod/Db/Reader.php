@@ -492,12 +492,23 @@ class Reader extends ProdObject
                 'pdb_idx_size',
                 'pdb_full_size',
                 'pdb_nb_rows',
+                'pdb_seqscan_nb',
+                'pdb_seqscan_rows',
+                'pdb_idxscan_nb',
+                'pdb_idxscan_rows',
+                'pdb_inserts',
+                'pdb_updates',
+                'pdb_deletes',
+                'pdb_last_autovaccuum',
+                'pdb_last_autoanalyze',
+                'pdb_nb_autovaccuum',
+                'pdb_nb_autoanalyze',
                 'pdb_timestamp',
                 'pdb_ugroup'))
             ->condition('pdb_is_database', 0)
             ->condition('pdb_enable', 1);
         // this one does not return $this ...
-        $query->addExpression('s.pdb_full_size / s.pdb_nb_rows', 'average_row_size');
+        $query->addExpression('CASE WHEN (s.pdb_nb_rows>0) THEN s.pdb_full_size / s.pdb_nb_rows ELSE 0 END', 'average_row_size');
 
         if ( 'all' != $db ) {
             $query->condition('pdb_identifier', $db);
@@ -617,7 +628,7 @@ class Reader extends ProdObject
         }
 
     protected function _extractHistory($ids, $level) {
-        /**
+        /*
         select rs.prs_id, d.pdb_identifier, d.pdb_db_name, d.pdb_table, rs.ptq_stat_tid, rs.prs_stat_pid, rs.prs_stat_col, r.pr_timestamp, r.pr_value,r.pr_value_max,r.pr_value_min, r.pr_aggregate_level,r.pr_rrd_index
     from prod_rrd_settings rs
         INNER JOIN prod_stats_task_queue pq ON pq.ptq_stat_tid=rs.ptq_stat_tid
@@ -629,7 +640,7 @@ class Reader extends ProdObject
     AND r.pr_aggregate_level = 3
     ORDER BY rs.prs_id, r.pr_aggregate_level, r.pr_rrd_index
 limit 50;
-        **/
+        */
         if (!is_array($ids) || 0===count($ids)) {
             return array();
         }
