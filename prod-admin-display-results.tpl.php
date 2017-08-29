@@ -52,7 +52,7 @@ var bytesToString = function (bytes) {
     }
 }
 
-//Create the export function - this will just export 
+//Create the export function - this will just export
 //the first svg element it finds
 function svgToCanvas(svg, w, h){
     console.log('********** TODO *******************');
@@ -64,10 +64,10 @@ function svgToCanvas(svg, w, h){
     console.log(img.src);
     // You could also use the actual string without base64 encoding it:
     //img.src = "data:image/svg+xml;utf8," + svgStr;
-    
+
     var canvas = document.createElement("canvas");
     document.body.appendChild(canvas);
-    
+
     canvas.width = w;
     canvas.height = h;
     canvas.getContext("2d").drawImage(img,0,0,w,h);
@@ -103,20 +103,20 @@ function toolTiping(d) {
 }
 
 //http://stackoverflow.com/a/20773846/550618
-function doneForAll(transition, callback) { 
+function doneForAll(transition, callback) {
     if (transition.size() === 0) { callback() }
-    var n = 0; 
+    var n = 0;
     transition
-        .each(function() { ++n; }) 
+        .each(function() { ++n; })
         .each("end", function() {
-            if (!--n) callback.apply(this, arguments); 
-        }); 
+            if (!--n) callback.apply(this, arguments);
+        });
 }
 
 function initGraph( graph ) {
 
     var graph_def = graph.def.graphic;
-    
+
     graph.actions = graph.placeholder.append('div')
         .attr('class', 'prod-actions');
 
@@ -135,7 +135,7 @@ function initGraph( graph ) {
 
     graph.yRight = d3.scale.linear()
                 .range([height, 0]);
-    
+
     graph.xAxis = d3.svg.axis()
         .scale(graph.x)
         .tickSize(1)
@@ -167,7 +167,7 @@ function initGraph( graph ) {
             graph.yAxisRight.tickFormat(bytesToString)
         }
     }
-    
+
     // Create the MAIN svg container
     graph.svg = graph.placeholder.append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -185,7 +185,7 @@ function initGraph( graph ) {
     graph.svg.append("g")
         .attr("class", "x axis x-axis")
         .attr("transform", "translate(0," + height + ")");
-    
+
     // add right axis
     if ( graph_def.has_y2 ) {
         graph.svg.append("g")
@@ -199,7 +199,7 @@ function initGraph( graph ) {
                 .style("text-anchor", "end")
                 .text(graph.def.graphic.axis_y2.label);
     }
-    
+
     // add left axis
     graph.svg.append("g")
         .attr("class", "y axis axisLeft")
@@ -217,7 +217,7 @@ function initGraph( graph ) {
     graph.svg.append("g")
             .attr("class", "grid gridy")
             .attr("transform", "translate(0, 0)");
-    
+
     // Export button
     var exporter = graph.actions.append("button")
         .text(graph.def.buttons.save)
@@ -249,12 +249,12 @@ function initGraph( graph ) {
             pagecounter : graph.filterszone.select('input[name="page"]'),
             sort : graph.filterszone.select('select[name="sort"]')
         }
-        
+
         graph.filters.selector.on('change', function(){
             graph.filters.pagecounter.attr('value',1);
             loadSomeData( graph );
         });
-        
+
         graph.filters.sort.on('change', function(){
             graph.filters.pagecounter.attr('value',1);
             loadSomeData( graph );
@@ -273,13 +273,13 @@ function initTable( graph ) {
     graph.table = { main : graph.tablezone.append('table')
         .attr('class', 'table table-striped prod-report-table')
     };
-    
+
     graph.table.main.append('caption').text(table_def.caption);
-    
+
     var head = graph.table.main.append('thead').append('tr');
-    
+
     graph.table.body = graph.table.main.append('tbody');
-    
+
     table_def.columns.forEach( function(h) {
          head.append('th')
              .attr('class', 'prod-report-table-header')
@@ -308,7 +308,7 @@ function handleJsonData( data, graph ) {
     graph.color = d3.scale.linear()
         .range(["#333399", "red"]);
 
-    
+
     // We may have some new datas, start by hiding the tooltip which may be active
     tooltip_div.transition()
             .duration(500)
@@ -332,6 +332,7 @@ function handleJsonData( data, graph ) {
             d.tooltip = '<strong>' + title + '</strong>' + content;
         });
     }
+
     // Transpose the data into layers for stacked layers
     if (graph_def.stacked) {
         var layers = d3.layout.stack()(
@@ -339,7 +340,7 @@ function handleJsonData( data, graph ) {
                 function( layer ) {
                     return rows.map(function(d) {
                         // transposition
-                        return { 
+                        return {
                             x: d[x_key],
                             y: +d[layer],
                             tooltip: d.tooltip
@@ -353,7 +354,7 @@ function handleJsonData( data, graph ) {
             // data is alreay pivoted
             var stack = d3.layout.stack()
                 .values(function( layer ) {
-                    
+
                     var l_values = [];
                     layer.values.forEach( function( r ) {
                         var title='', content='';
@@ -388,7 +389,7 @@ function handleJsonData( data, graph ) {
                     function( layer ) {
                         return rows.map(function(d) {
                             // transposition
-                            return { 
+                            return {
                                 x: d[x_key],
                                 y: +d[layer],
                                 tooltip: d.tooltip
@@ -401,13 +402,14 @@ function handleJsonData( data, graph ) {
     }
 console.log('LAYERS', layers.length, layers);
     graph.color.domain([0, layers.length-1]);
-    
+
     // Compute the x-domain and y-domain (by layer).
     // And update axis based on real data
-    
+
     if ( !graph_def.pivot ) {
         graph.x.domain( rows.map( function(d) { return d[x_key]; }));
     } else {
+        // pivoted graphs containing dates
         var xMax = d3.max(
             rows,
             function(row) {
@@ -434,7 +436,7 @@ console.log('LAYERS', layers.length, layers);
             .attr("dx", "-.8em")
             .attr("dy", ".15em")
             .attr("transform", function(d) {
-                            return "rotate(-65)" 
+                            return "rotate(-65)"
             });
 
     // Update the X Theme Grid
@@ -446,7 +448,7 @@ console.log('LAYERS', layers.length, layers);
         graph.svg.selectAll('g.gridx')
             .call(d3.svg.axis().scale(graph.x).tickSize(-height).tickFormat(""));
     }
-    
+
     // Update Left Axis
     var yLeftMax = d3.max(
         rows,
@@ -457,7 +459,7 @@ console.log('LAYERS', layers.length, layers);
                 });
             } else {
                 return row[y1_key];
-            } 
+            }
         }
     );
     yLeftMax = yLeftMax * 1.1;
@@ -484,7 +486,7 @@ console.log('LAYERS', layers.length, layers);
         graph.svg.selectAll("g.axisRight")
             .call(graph.yAxisRight);
     }
-    
+
     // Update the Y theme Grid
     graph.svg.selectAll('g.gridy')
             .call(d3.svg.axis().scale(graph.yLeft)
@@ -505,33 +507,33 @@ console.log('LAYERS', layers.length, layers);
             .append("svg:g")
             .attr("class", "layer")
             .attr("transform", "translate(0,0)");
-        
+
         // extra layers
         s_layers.exit()
             .remove();
-        
+
         // Areas
         var paths = graph.svg.selectAll("path.data-area-path")
             .data(layers);
-        
+
         var lines = graph.svg.selectAll("path.data-line-path")
             .data(layers);
            /* .data( function(d) { console.log("another d", d); return d.values; });*/
-        
+
         console.log('paths', paths);
-        
+
         var area = d3.svg.area()
          .x(function(d) { return graph.x(d.x); })
          .y0(function(d) { return graph.yLeft(d.y0); })
          .y1(function(d) { return graph.yLeft(d.y1); });
-        
+
         var lineFunc = d3.svg.line()
             .x(function(d) { return graph.x(d.x); })
             .y(function(d) {
                 return graph.yLeft(d.y);
             })
             .interpolate('linear');
-        
+
         paths.enter().append('path')
             .attr("class", "data-area-path")
             .attr("d", function(d) { return area(d.values); })
@@ -539,7 +541,7 @@ console.log('LAYERS', layers.length, layers);
             .style("opacity", 0.5)
             .append('title')
             .text(function(d) { return d.name; });
-        
+
         paths.exit()
             .remove();
 
@@ -594,10 +596,10 @@ console.log('LAYERS', layers.length, layers);
                 .style("fill", function(d,i) { return graph.color(i); });
         });
 
-        
+
     } else {
 
-        
+
         // Add a group for each layer.
         var s_layers = graph.svg.selectAll("g.layer")
             .data(layers);
@@ -611,17 +613,17 @@ console.log('LAYERS', layers.length, layers);
                 return color(i);
             })
             .style("stroke", function(d, i) {
-                return d3.rgb(color(i)).darker(); 
+                return d3.rgb(color(i)).darker();
             });
         // extra layers
         s_layers.exit()
             .remove();
-        
-        
+
+
         // Add a rect for each X.
         var rects = s_layers.selectAll("rect.data-rect")
             .data(function(d) { return d; });
-        
+
         // new records
         rects.enter().append("svg:rect")
             .attr("class", "data-rect")
@@ -630,14 +632,14 @@ console.log('LAYERS', layers.length, layers);
             .attr("y", height)
             .attr("height",0)
             .on("mouseover", function(d) { toolTiping(d)});
-        
+
         // extra records
         rects.exit()
           .transition()
             .duration(1000)
             .delay(function(d, i) { return i * 10; })
             .attr("x", function(d) { return width; })
-            .attr("y", 
+            .attr("y",
               function(d) {
                 return height; }
             )
@@ -646,13 +648,13 @@ console.log('LAYERS', layers.length, layers);
             )
             .attr("width", graph.x.rangeBand())
             .remove();
-        
+
         // Update old ones and also init the new ones
         rects.transition()
             .duration(1000)
             .delay(function(d, i) { return i * 10; })
             .attr("x", function(d) { return graph.x(d.x); })
-            .attr("y", 
+            .attr("y",
               function(d) {
                 return graph.yLeft(d.y0) -height + graph.yLeft(d.y); }
             )
@@ -666,7 +668,7 @@ console.log('LAYERS', layers.length, layers);
     if ( graph.def.graphic.has_y2 ) {
         var dots = graph.svg.selectAll("circle.data-circle")
             .data(rows);
-        
+
         // append new dots
         dots.enter().append("circle")
             .attr("class", "data-circle")
@@ -678,17 +680,17 @@ console.log('LAYERS', layers.length, layers);
         // remove extra dots
         dots.exit()
             .remove();
-    
+
         var lineFunc = d3.svg.line()
             .x(function(d) { return graph.x(d[x_key])+ graph.x.rangeBand()/2; })
             .y(function(d) {
                 return graph.yRight(d[y2_key]);
             })
             .interpolate('linear');
-    
+
         // remove existing lines
         graph.svg.selectAll(".prod-graph-line").remove();
-        
+
         // Update circles and launch the line at the end
         dots.transition()
             .duration(1000)
@@ -717,8 +719,23 @@ function manageTable( data, graph ) {
     if ( graph.tablezone.empty() ) return false;
 
     var table_def = graph.def.table;
-    
-    var rows = data.rows;
+    var graph_def = graph.def.graphic;
+
+    if (graph_def.pivot) {
+        // RRD history graphs
+        // case, rows are the different data sources, with several 'rows' of data
+        // inside, as 'values' key.
+        var rows = [];
+        data.rows.forEach(function(source_record, i){
+            source_record.values.forEach(function(record_row, i){
+                record_row.time = new Date(parseInt(record_row.time,10) * 1000);
+                rows.push(record_row);
+            });
+        });
+    } else {
+        // simple case, rows are table rows
+        var rows = data.rows;
+    }
 
     // rows of table
     var trs = graph.table.body.selectAll("tr")
@@ -743,7 +760,7 @@ function manageTable( data, graph ) {
                         return {
                             column: column.key,
                             value: row[column.key],
-                            style: column.style 
+                            style: column.style
                         };
                     });
             });
@@ -756,19 +773,19 @@ function manageTable( data, graph ) {
         .remove();
     // Tds update (will contain enter() created elements also)
     tds.text( function(d) { return d.value; } )
-       .attr('style', function(d) { return d.style; } );
+    .attr('style', function(d) { return d.style; } );
 
 }
 
 function loadSomeDefinitions( graph ) {
     var url = graph.def.graph_def_url + graph.def.graph_id;
-    
+
     if (graph.placeholder.classed('prod-graph-rrd')) {
         url += '?level=' + graph.def.rrd_level;
     }
     d3.json( url
             , function(error, data) {
-    
+
                 if (null === error ) {
                     if (data.error) {
                         alert('error requesting json definition : ' + data.error_msg);
@@ -809,7 +826,7 @@ function loadSomeData( graph ) {
     d3.json(
         url
         , function(error, data) {
-    
+
             if (null === error ) {
                 if (data.error) {
                     alert('error requesting json data : ' + data.error_msg);
@@ -821,7 +838,7 @@ function loadSomeData( graph ) {
                 alert('error while parsing json response');
                 return false;
             }
-        
+
         });
 
 }
@@ -843,7 +860,7 @@ function starter_end( container, graph ) {
         graph.def.rrd_level = parseInt( full.substr( full.length -1 ), 10);
         graph.def.graph_id = full.substr( 0, full.length -2 );
     }
-    
+
     // First ajax query, for full graph definition
     // chining will also launch first data query and graph creation
     loadSomeDefinitions( graph );
@@ -888,11 +905,11 @@ jQuery('document').ready(function() {
 
         var $container = jQuery(this);
         var container = d3.select('#' + $container.attr('id'));
-        
+
         if ( false === starter( container ) ) {
-        
+
            alert('No graph found.');
-        
+
         }
 
     });
