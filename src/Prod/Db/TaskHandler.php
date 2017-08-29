@@ -147,9 +147,24 @@ class TaskHandler extends Task implements TaskInterface, ProdObserverInterface
 
                 foreach($tables as $table) {
 
-                    $table->save();
-                    $limit --;
+                    // Start a new transaction
+                    $transaction = db_transaction();
+                    try {
 
+                        $table->save();
+                        $limit --;
+
+                    } catch (Exception $e) {
+                        $transaction->rollback();
+                        $this->logger->log($e, NULL, WATCHDOG_CRITICAL);
+                    }
+                    try {
+                        // implicit $transaction->commit();, Drupal way
+                        unset($transaction);
+                    } catch (Exception $e) {
+                        $this->logger->log($e, NULL, WATCHDOG_CRITICAL);
+                        die('transaction mess');
+                    }
                 }
             }
 
@@ -170,6 +185,7 @@ class TaskHandler extends Task implements TaskInterface, ProdObserverInterface
 
             }*/
 
+
             // Add a global aggregate record for the database
             // we always do that, no matter about the limits
 
@@ -179,16 +195,18 @@ class TaskHandler extends Task implements TaskInterface, ProdObserverInterface
             $tables[] = $dbRecord;
 
             // RRD storage, now that all tables are at least recorded once
+            // WARN: ManageRotations contains transaction management
             if (variable_get('prod_stats_rrd_enabled', FALSE)) {
                 $rrd_manager = new Manager();
                 $rrd_manager
-                  ->loadMultipleProviders($this->getId(), $tables)
-                  ->manageRotations();
+                ->loadMultipleProviders($this->getId(), $tables)
+                ->manageRotations();
             }
 
             // Try to guess some default user group values for records
             // having none
             $dbAnalyser->setDefaultUserGroup();
+
 
         } // end database loop
     }

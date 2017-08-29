@@ -693,7 +693,32 @@ class Definition Extends ProdObject
         foreach( $this->new_points as $level => $nb_points ) {
 
             if ( $nb_points > 0 ) {
-                if ('MySQL' === $driver) {
+                if ('Pgsql' === $driver) {
+                    // deferrable constraint not available, fuck
+                    /*db_query("
+                      SET CONSTRAINTS prod_rrd_pkey DEFERRED;
+                    ");*/
+                    // so let's use an awfull hack. Pertty sure I'd better stop
+                    // trying to update all rows, not efficient in terms of database
+                    $results = db_query("
+                        UPDATE {prod_rrd}
+                        SET pr_rrd_index=-(pr_rrd_index + 1)
+                        WHERE prs_id=:id
+                        AND pr_aggregate_level=:level
+                    ", array(
+                        ':id' => $this->getId(),
+                        ':level' => $level
+                    ));
+                    $results = db_query("
+                        UPDATE {prod_rrd}
+                        SET pr_rrd_index=-(pr_rrd_index)
+                        WHERE prs_id=:id
+                        AND pr_aggregate_level=:level
+                    ", array(
+                        ':id' => $this->getId(),
+                        ':level' => $level
+                    ));
+                } else {
                     // We cannot use a db_update because of the order by.
                     // The order by pr_rrd_index DESC is there to avoid a duplicate
                     // key on unique index for MySQL while updating (no deferred
@@ -706,17 +731,6 @@ class Definition Extends ProdObject
                         ORDER BY prs_id ASC,
                                 pr_aggregate_level ASC,
                                 pr_rrd_index DESC
-                    ", array(
-                        ':id' => $this->getId(),
-                        ':level' => $level
-                    ));
-                } else {
-                    // deferrable constraint
-                    $results = db_query("
-                        UPDATE {prod_rrd}
-                        SET pr_rrd_index=pr_rrd_index + 1
-                        WHERE prs_id=:id
-                        AND pr_aggregate_level=:level
                     ", array(
                         ':id' => $this->getId(),
                         ':level' => $level
