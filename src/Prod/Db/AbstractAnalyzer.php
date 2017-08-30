@@ -366,8 +366,8 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
             $query->condition('pdb_table', db_like($prefix) . '%' , 'LIKE');
         }
 
-        $query->addExpression('SUM(s.' . $prefix . 'pdb_nb_rows/100)', 'rowsum');
-        $query->addExpression('COUNT(*)', 'tablecount');
+        $query->addExpression('SUM(s.' . $prefix . 'pdb_nb_rows)', 'rowsum');
+        $query->addExpression('COUNT(*) * 1000', 'tablecount');
 
         $results = $query->execute();
         foreach($results as $result) {

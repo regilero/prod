@@ -453,10 +453,10 @@ abstract class AbstractTable extends ProdObject implements TableInterface, Stats
                     'pdb_is_database' => $this->getIsDatabase()
                 ) )
                 -> fields( array(
-                    'pdb_size' => $this->getSize() * 100,
-                    'pdb_idx_size' => $this->getIndexSize() * 100,
-                    'pdb_full_size' => $this->getTotalSize() * 100,
-                    'pdb_nb_rows' => $this->getRows() * 100,
+                    'pdb_size' => $this->getSize(),
+                    'pdb_idx_size' => $this->getIndexSize(),
+                    'pdb_full_size' => $this->getTotalSize(),
+                    'pdb_nb_rows' => $this->getRows(),
                     'pdb_timestamp' => $this->getTimestamp(),
                     // TODO: getter/setter when this will go to ui
                     'pdb_enable' => 1,

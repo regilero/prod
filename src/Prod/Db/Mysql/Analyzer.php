@@ -59,9 +59,9 @@ class Analyzer extends AbstractAnalyzer implements AnalyzerInterface
     public function _getTablesInformationsQuery() {
         $qry = "
             SELECT table_name,
-                   table_rows,
-                   data_length,
-                   index_length
+                   table_rows * 1000,
+                   data_length * 1000,
+                   index_length * 1000
             FROM information_schema.TABLES
             WHERE table_schema=:db_name
         ";

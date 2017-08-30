@@ -320,32 +320,32 @@ class Table extends AbstractTable implements TableInterface
                 ));
             if ($this->getIsDatabase()) {
                 $merge->fields( array(
-                    'pdb_size' => $this->getSize() * 100,
-                    'pdb_idx_size' => $this->getIndexSize() * 100,
-                    'pdb_full_size' => $this->getTotalSize() * 100,
-                    'pdb_nb_rows' => $this->getRows() * 100,
+                    'pdb_size' => $this->getSize(),
+                    'pdb_idx_size' => $this->getIndexSize(),
+                    'pdb_full_size' => $this->getTotalSize(),
+                    'pdb_nb_rows' => $this->getRows(),
                     'pdb_timestamp' => $this->getTimestamp(),
                     // TODO: getter/setter when this will go to ui
                     'pdb_enable' => 1,
                 ));
             } else {
                 $merge->fields( array(
-                    'pdb_size' => $this->getSize() * 100,
-                    'pdb_idx_size' => $this->getIndexSize() * 100,
-                    'pdb_full_size' => $this->getTotalSize() * 100,
-                    'pdb_nb_rows' => $this->getRows() * 100,
+                    'pdb_size' => $this->getSize(),
+                    'pdb_idx_size' => $this->getIndexSize(),
+                    'pdb_full_size' => $this->getTotalSize(),
+                    'pdb_nb_rows' => $this->getRows(),
                     'pdb_timestamp' => $this->getTimestamp(),
-                    'pdb_seqscan_nb' => $this->getSeqscanNb() * 100,
-                    'pdb_seqscan_rows' => $this->getSeqScanRows() * 100,
-                    'pdb_idxscan_nb' => $this->getIdxscanNb() * 100,
-                    'pdb_idxscan_rows' => $this->getIdxscanRows() * 100,
-                    'pdb_inserts' => $this->getInserts() * 100,
-                    'pdb_updates' => $this->getUpdates() * 100,
-                    'pdb_deletes' => $this->getDeletes() * 100,
+                    'pdb_seqscan_nb' => $this->getSeqscanNb(),
+                    'pdb_seqscan_rows' => $this->getSeqScanRows(),
+                    'pdb_idxscan_nb' => $this->getIdxscanNb(),
+                    'pdb_idxscan_rows' => $this->getIdxscanRows(),
+                    'pdb_inserts' => $this->getInserts(),
+                    'pdb_updates' => $this->getUpdates(),
+                    'pdb_deletes' => $this->getDeletes(),
                     'pdb_last_autovaccuum' => $this->getLastAutoVaccuum(),
                     'pdb_last_autoanalyze' => $this->getLastAutoanalyze(),
-                    'pdb_nb_autovaccuum' => $this->getNbAutovacuum() * 100,
-                    'pdb_nb_autoanalyze' => $this->getNbAutoanalyze() * 100,
+                    'pdb_nb_autovaccuum' => $this->getNbAutovacuum(),
+                    'pdb_nb_autoanalyze' => $this->getNbAutoanalyze(),
                     // TODO: getter/setter when this will go to ui
                     'pdb_enable' => 1,
                     ));

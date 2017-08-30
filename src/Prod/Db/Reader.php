@@ -122,7 +122,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pdb_full_size')
             ->setLabel('full_size')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->setTitle('Full Size')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
@@ -132,7 +132,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pdb_full_size')
             ->setLabel('full_size_h')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->addFormat('human_bytes')
             ->setTitle('Full Size')
             ->flagBase1024(TRUE)
@@ -143,7 +143,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pdb_size')
             ->setLabel('size_h')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->addFormat('human_bytes')
             ->setTitle('Size')
             ->flagBase1024(TRUE)
@@ -154,7 +154,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pdb_size')
             ->setLabel('size')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->setTitle('Size')
             ->flagBase1024(TRUE)
             ->addInvalidEnv('table')
@@ -164,7 +164,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pdb_idx_size')
             ->setLabel('idx_size_h')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->addFormat('human_bytes')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
@@ -175,7 +175,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pdb_idx_size')
             ->setLabel('idx_size')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->setTitle('Index Size')
             ->flagBase1024(TRUE)
             ->addInvalidEnv('table')
@@ -185,7 +185,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pdb_nb_rows')
             ->setLabel('rows_h')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->addFormat('human_int')
             ->setStyle('text-align: right')
             ->setTitle('Nb Rows')
@@ -196,7 +196,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pdb_nb_rows')
             ->setLabel('rows')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->setTitle('Nb Rows')
             ->addInvalidEnv('table');
         $formatter->addColumn( $col );
@@ -287,7 +287,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pr_value')
             ->setLabel('y')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->setTitle('Full Size')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
@@ -297,7 +297,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pr_value')
             ->setLabel('full_size_h')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->addFormat('human_bytes')
             ->setTitle('Full Size')
             ->flagBase1024(TRUE)
@@ -308,7 +308,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pr_value_max')
             ->setLabel('y1')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->setTitle('Max Full Size')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
@@ -318,7 +318,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pr_value_max')
             ->setLabel('full_size_max_h')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->addFormat('human_bytes')
             ->setTitle('Max Full Size')
             ->flagBase1024(TRUE)
@@ -329,7 +329,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pr_value_min')
             ->setLabel('y0')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->setTitle('Min Full Size')
             ->flagBase1024(TRUE)
             ->setStyle('text-align: right')
@@ -339,7 +339,7 @@ class Reader extends ProdObject
         $col = new Column();
         $col->mapColumn('pr_value_min')
             ->setLabel('full_size_min_h')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->addFormat('human_bytes')
             ->setTitle('Min Full Size')
             ->flagBase1024(TRUE)
@@ -390,7 +390,7 @@ class Reader extends ProdObject
 
         $col = new Column();
         $col->mapColumn('pdb_full_size')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->setTitle('Nb Tables')
             ->setLabel('nb_tables')
             ->addInvalidEnv('table');
@@ -398,7 +398,7 @@ class Reader extends ProdObject
 
         $col = new Column();
         $col->mapColumn('pdb_full_size')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->addFormat('human_int')
             ->setTitle('Nb Tables')
             ->setLabel('nb_tables_h')
@@ -408,7 +408,7 @@ class Reader extends ProdObject
 
         $col = new Column();
         $col->mapColumn('pdb_nb_rows')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->setLabel('rows')
             ->setTitle('Nb Rows')
             ->addInvalidEnv('table');
@@ -416,7 +416,7 @@ class Reader extends ProdObject
 
         $col = new Column();
         $col->mapColumn('pdb_nb_rows')
-            ->addFormat('undo_factor100')
+            ->addFormat('undo_factor1000')
             ->addFormat('human_int')
             ->setLabel('rows_h')
             ->setStyle('text-align: right')
