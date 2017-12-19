@@ -24,10 +24,10 @@ class DrupalTask extends Task
      * @var \Drupal\Prod\Stats\Drupal\DrupalTask object (for Singleton)
      */
     protected static $instance;
-    
+
     // Stat provider id. This comes from Task
     protected $id;
-    
+
     // Task informations
     // the module, here
     protected $task_module='Drupal\\Prod\\Stats\\Drupal\\DrupalTask';
@@ -41,15 +41,15 @@ class DrupalTask extends Task
      */
     public static function getInstance()
     {
-    
+
         if (!isset(self::$instance)) {
-    
+
             self::$instance = new DrupalTask();
         }
-    
+
         return self::$instance;
     }
-    
+
     public function __construct()
     {
         return $this->initHelpers();
@@ -61,7 +61,7 @@ class DrupalTask extends Task
      * @param ProdObservable $sender Sender of the signal (Obervable)
      *
      * @param int $signal one of the signal defined as consts in ProdObservable
-     * 
+     *
      * @param string $info optional information associated with the signal
      */
     public function signal(ProdObservable $sender, $signal, $info=null)
@@ -74,9 +74,9 @@ class DrupalTask extends Task
               $this->_registerTasksInQueue($sender);
               break;
         }
-        
+
     }
-    
+
     protected function _registerTasksInQueue(Queue $queue)
     {
         // We are just one task, so use simple add-me-to-the-queue mode
@@ -92,9 +92,9 @@ class DrupalTask extends Task
     {
 
         $this->logger->log(__METHOD__, NULL, WATCHDOG_DEBUG);
-        
+
         if ($this->_loadId()) {
-            
+
             $stats = $this->getStatsList();
 
             foreach($stats as $key => $stat) {
@@ -102,13 +102,13 @@ class DrupalTask extends Task
                 // That's a final end user input, apply formatter
                 $line = $key . '=' . floor($stat->getValue()/1000);
                 $sender->AddOutputLine($line);
-                
+
             }
-            
+
         } else {
-            
+
             $this->logger->log($this->task_module . "; no metrics available yet", NULL, WATCHDOG_DEBUG);
-            
+
         }
     }
 
@@ -124,20 +124,21 @@ class DrupalTask extends Task
         }
         return $this->id;
     }
-    
-    
+
+
 
     public function manageRRD()
     {
 
         // RRD storage, now that all tables are at least recorded once
         if (variable_get('prod_stats_rrd_enabled', FALSE)) {
-        
+
+            // WARN: ManageRotations contains transaction management
             $rrd_manager = new Manager();
             $rrd_manager
               ->loadMultipleProviders($this->getId(), array($this) )
               ->manageRotations();
-        
+
         }
 
     }

@@ -119,7 +119,12 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
             if (is_array($table)) {
 
                 // need to transform this in Drupal\Prod\Db\TableInterface object
-                $otable = TableFactory::get( $this->getDbDriver(), $this->getDbIdentifier(), $this->getDbName(), $table );
+                $otable = TableFactory::get(
+                    $this->getDbDriver(),
+                    $this->getDbIdentifier(),
+                    $this->getDbName(),
+                    $table
+                );
                 $list[] = $otable;
 
             } else {
@@ -131,7 +136,6 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
             }
 
         }
-
         $this->tables = $list;
         return $this;
     }
@@ -143,6 +147,94 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
 
         return $this->tables;
     }
+
+    /**
+     * Return an iterable collection of TableInterface objects
+     *
+     * @param int $limit: max number of records to manage
+     *
+     * @return array|Traversable List of tables
+     *
+     * @throws Drupal\Prod\Error\DbAnalyzerException
+     */
+    public function extractTables($limit)
+    {
+        if ($limit !== 0) {
+
+          // First get the list of tables to extract
+          // which contains 2 pieces:
+          //  1 - The new tables
+          //  2 - the oldest analyzed tables
+
+          $tables_list = $this->_getUntrackedTables($limit);
+          $nb = count($tables_list);
+          $this->logger->log(
+              'Extracting tables, found ' . $nb . ' new tables',
+               NULL, WATCHDOG_DEBUG );
+
+          if ( $nb < $limit ) {
+
+              if (0==$nb) $tables_list = array();
+
+              $updates = $this->_getOldestTables( $limit - count($tables_list) );
+              $this->logger->log(
+                'Extracting tables, found '. count($updates) . ' existing tables needing updates',
+                NULL, WATCHDOG_DEBUG );
+              $tables_list = array_merge( $tables_list, $updates );
+
+              if (0==count($tables_list)) {
+                 $this->logger->log(
+                   'Nothing to extract.',
+                   NULL, WATCHDOG_DEBUG );
+                return array();
+              }
+          }
+
+        } else {
+            $this->logger->log('Extracting All tables',NULL,WATCHDOG_DEBUG);
+        }
+
+        $query = $this->_getTablesInformationsQuery();
+
+        $args = array(':db_name' => $this->getDbName());
+
+        if (($limit !== 0) && $tables_list) {
+
+            $query .= $this->_getQueryFilterTableList();
+            $args[':list'] = $tables_list;
+
+        }
+
+        // On databases using some prefix we need to filter out the results
+        if (!empty($this->getDbPrefix())) {
+            $query .= $this->_getQueryFilterTableExpr();
+            $args[':prefix'] = $this->getDbPrefix();
+        }
+
+        // by default we'll try to use the slave connection, but if you do not
+        // use the same db name or the same prefix as in the master/default you
+        // should suspend this setting
+        $options = array(
+            'target' => variable_get('prod_db_stats_indexer_use_slave',TRUE)? 'slave': 'default',
+            'fetch' => \PDO::FETCH_ASSOC,
+        );
+
+        $result = db_query( $query, $args, $options );
+
+        $tables = $result->fetchAll();
+         $this->logger->log(
+           'Extracting stats for :nb tables',
+           array(':nb' => count($tables)),
+           WATCHDOG_INFO
+         );
+
+        // this will compute the data+idx length
+        $this->setTables($tables);
+
+        return $this->getTables();
+
+    }
+
 
     /**
      * Extract the least recently analysed tables for the current
@@ -183,6 +275,64 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
 
 
     /**
+     * Try to guess some good human readable groups for all contained tables.
+     *
+     * @return AnalyzerInterface
+     *
+     * @throws Drupal\Prod\Error\DbAnalyzerException
+     */
+    public function setDefaultUserGroup()
+    {
+
+        db_update('prod_db_stats')
+            ->fields(array(
+                'pdb_ugroup' => 'Fields',
+            ))
+            ->isNull('pdb_ugroup')
+            ->condition('pdb_identifier',$this->getDbIdentifier(),'=')
+            ->condition('pdb_db_name',$this->getDbName(),'=')
+            ->condition('pdb_table',db_like('field_').'%','LIKE')
+            ->execute();
+
+        db_update('prod_db_stats')
+            ->fields(array(
+                'pdb_ugroup' => 'Core',
+            ))
+            ->isNull('pdb_ugroup')
+            ->condition('pdb_identifier',$this->getDbIdentifier(),'=')
+            ->condition('pdb_db_name',$this->getDbName(),'=')
+            ->condition('pdb_table',array(
+                'variable',
+                'users',
+                'comment',
+                'profile',
+                'watchdog',
+                'system',
+                'history',
+                'registry',
+                'block',
+                'sessions',
+                'role',
+                'semaphore',
+                'queue',
+                'batch',
+                'languages',
+                'sequences',
+            ),'IN')
+            ->execute();
+
+        // TODO: This will not work with db prefix...
+        db_update('prod_db_stats')
+            ->expression('pdb_ugroup', $this->_getTablesGroupExpression())
+            ->isNull('pdb_ugroup')
+            ->execute();
+
+        return $this;
+
+    }
+
+
+    /**
      * Add or update a db record containing summ of tables data.
      *
      * @return TableInterface object (the created or updated record)
@@ -217,7 +367,7 @@ abstract class AbstractAnalyzer extends ProdObject implements AnalyzerInterface
         }
 
         $query->addExpression('SUM(s.' . $prefix . 'pdb_nb_rows)', 'rowsum');
-        $query->addExpression('COUNT(*)', 'tablecount');
+        $query->addExpression('COUNT(*) * 1000', 'tablecount');
 
         $results = $query->execute();
         foreach($results as $result) {

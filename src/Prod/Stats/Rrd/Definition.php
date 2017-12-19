@@ -28,7 +28,7 @@ class Definition Extends ProdObject
      * @var int
      */
     private $stat_task_id;
-    
+
     /**
      * Stat provider id (part of the Stat key)
      *
@@ -126,13 +126,13 @@ class Definition Extends ProdObject
      * @param int $points_per_graph, Number of points on each graph
      *
      * @throws InvalidRRDException
-     * 
+     *
      * @return \Drupal\Prod\Stats\Rrd\Definition
      */
     public function __construct($stat_task_id, $stat_pid, $stat_col, $interval, $points_per_aggregate, $points_per_graph)
     {
         $this->stat_task_id = (int) $stat_task_id;
-        
+
         $this->stat_pid = (int) $stat_pid;
 
         $this->stat_col = $stat_col;
@@ -144,7 +144,7 @@ class Definition Extends ProdObject
         }
 
         $this->points_per_aggregate = (int) $points_per_aggregate;
-        
+
         if ( !  $this->points_per_aggregate > 0) {
             throw new InvalidRRDException('points_per_aggregate must be a positive number.');
         }
@@ -169,9 +169,9 @@ class Definition Extends ProdObject
         // Note that this MEANS IT IS A NEW RECORD!! unless you set something in it later
         // For existing records this is used to detect problems on the data
         $this->last_timestamp = NULL;
-        
+
         $this->id = NULL;
-        
+
         $this->points_before_level = array(
             0=>0, /* not used */
             1=>0,
@@ -192,7 +192,7 @@ class Definition Extends ProdObject
 
     /**
      * Set the Definition Id
-     * 
+     *
      * @param int $id
      * @return \Drupal\Prod\Stats\Rrd\Definition
      */
@@ -201,12 +201,12 @@ class Definition Extends ProdObject
         $this->id = (int) $id;
         return $this;
     }
-    
+
     /**
      * Definition's Id Getter.
      * Note that an unsaved definition does not have an Id yet.
      * Check the hasId() function.
-     * 
+     *
      * @throws UndefinedRRDDefinitionException if the Definition Id is unknown
      * @return number
      */
@@ -217,11 +217,11 @@ class Definition Extends ProdObject
         }
         return $this->id;
     }
-    
+
     /**
      * Does this Definition has an RRD id?
      * If so it means it was saved at least once.
-     * 
+     *
      * @return boolean
      */
     public function hasId()
@@ -233,7 +233,7 @@ class Definition Extends ProdObject
     {
         return $this->stat_task_id;
     }
-    
+
     public function getProviderId()
     {
         return $this->stat_pid;
@@ -243,27 +243,31 @@ class Definition Extends ProdObject
     {
         return $this->stat_col;
     }
-    
+
     /**
      * Return a list of Drupal\Prod\Stats\Rrd\Definitions from the Database.
-     * 
+     *
      * All known definitions for the given set of providers are returned.
      * Note that this function can only retrieve providers attached to the same
      * StatTask (as providers ids are managed by each stat task).
-     * 
+     *
      * @param int $task_id id of the Stat task for the given providers
-     * 
+     *
      * @param array $providers_ids list of Providers id
-     * 
+     *
      * @return multitype:\Drupal\Prod\Stats\Rrd\Definition
      */
     public static function loadDefinitionsByProviders($task_id, $providers_ids) {
-       
-        $results = db_select('prod_rrd_settings','s')
-            ->fields('s')
-            ->condition('ptq_stat_tid', $task_id, '=')
-            ->condition('prs_stat_pid', $providers_ids, 'IN')
-            ->execute();
+
+        if (count($providers_ids) > 0) {
+            $results = db_select('prod_rrd_settings','s')
+                ->fields('s')
+                ->condition('ptq_stat_tid', $task_id, '=')
+                ->condition('prs_stat_pid', $providers_ids, 'IN')
+                ->execute();
+        } else {
+            $results = array();
+        }
 
         $objects = array();
 
@@ -292,7 +296,7 @@ class Definition Extends ProdObject
 
     /**
      * Set the last timestamp of created RRD entry for this Definition.
-     * 
+     *
      * @param int $timestamp
      * @return \Drupal\Prod\Stats\Rrd\Definition
      */
@@ -305,7 +309,7 @@ class Definition Extends ProdObject
     /**
      * Set the number of point needed before aggregate point generation for the 4 given levels.
      * There is no need to set a number of points for level 1, which is not an aggregate level.
-     * 
+     *
      * @param int $level2
      * @param int $level3
      * @param int $level4
@@ -332,14 +336,14 @@ class Definition Extends ProdObject
      * Given a stat object with a value we Manage adding RRD points for this stat.
      * That is at least one point created or updated in each level graph
      * and maybe some deletions and increments for others.
-     * 
-     * @param StatInterface $stat, the new stat value to manage for this Rotation 
-     * 
+     *
+     * @param StatInterface $stat, the new stat value to manage for this Rotation
+     *
      * @return boolean
      */
-    public function manageRotation(StatInterface $stat) 
+    public function manageRotation(StatInterface $stat)
     {
-    
+
         if (!$this->hasId()) {
 
             // new definition, so new RRD record, simple case
@@ -356,12 +360,12 @@ class Definition Extends ProdObject
         //---------------------------------------------------------------------------
         // Step 1 - Detect that we really need a rotation.
         //          Is there enough time since last record?
-        
+
         $timestamp = $stat->getTimestamp();
-        
+
         // this is the minimal time for a new record (t+50% of interval)
         $minimal_new_record = $this->last_timestamp + floor( $this->interval * 0.5 );
-        
+
         if ($timestamp < $minimal_new_record) {
             // Not enough time elapsed!
             $this->logger->log('Interval too short, break early', NULL, WATCHDOG_DEBUG);
@@ -369,7 +373,7 @@ class Definition Extends ProdObject
         }
 
         //----------------------------------------------------------------------
-        // Step 2 - preload some RRD records that will be needed later if they 
+        // Step 2 - preload some RRD records that will be needed later if they
         // exists to compute aggregates later
         $this->_loadPreviousRRDEntries();
 
@@ -387,8 +391,8 @@ class Definition Extends ProdObject
         if ( $this->_detectProblems( $stat ) ) {
             return FALSE;
         }
-        
-        
+
+
         //----------------------------------------------------------------------
         // Step 4 - increment all rrd_index of previous records in database for
         //          graph 1 and all graphs where points_before_level_* is
@@ -429,7 +433,7 @@ class Definition Extends ProdObject
         $query->condition($orcond);
         $query->execute();
     }
-    
+
     /**
      * Remove points that should not exists anymore on graphs
      *  (based on $this->points_per_graph)
@@ -441,9 +445,9 @@ class Definition Extends ProdObject
             ->condition('pr_rrd_index', $this->points_per_graph, '>')
             ->execute();
     }
-    
+
     /**
-     * 
+     *
      * @param StatInterface $stat
      * @return boolean : FALSE if everythin was right <- WARNING!
      */
@@ -455,26 +459,26 @@ class Definition Extends ProdObject
                 || !isset($this->last_entries[4][0])
                 || !isset($this->last_entries[5][0])
         ) {
-        
+
             $this->_cleanup_bad_records( $this->last_timestamp );
-        
+
             // fallback to new record creation
             $this->logger->log(
                     'Missing data, fallback to create default RRD records for '
                     . $this->getId(),
                     NULL, WATCHDOG_DEBUG);
-            
+
             return $this->_manageNewRecord($stat);
-        
+
         }
-        
+
         if ( ($this->last_timestamp < $this->last_entries[1][0]->getTimestamp())
                 || ($this->last_timestamp < $this->last_entries[2][0]->getTimestamp())
                 || ($this->last_timestamp < $this->last_entries[3][0]->getTimestamp())
                 || ($this->last_timestamp < $this->last_entries[4][0]->getTimestamp())
                 || ($this->last_timestamp < $this->last_entries[5][0]->getTimestamp())
         ) {
-            
+
             $entries = implode(',', array(
                     $this->last_entries[1][0]->getTimestamp(),
                     $this->last_entries[2][0]->getTimestamp(),
@@ -489,41 +493,41 @@ class Definition Extends ProdObject
                         ':entries' => $entries,
                         ':last' => $this->last_timestamp,
                     ), WATCHDOG_WARNING);
-        
+
             $this->_cleanup_bad_records( $this->last_timestamp );
-        
+
             // fallback to new record creation
             $this->logger->log(
                     'fallback to create default RRD records for '
                     . $this->getId(),
                     NULL, WATCHDOG_DEBUG);
-            
+
             return $this->_manageNewRecord($stat);
-        
+
         }
-        
+
         if ($this->last_timestamp != $this->last_entries[1][0]->getTimestamp()) {
-        
+
             $this->_cleanup_bad_records( $this->last_timestamp );
-        
+
             // fallback to new record creation
             $this->logger->log(
                     'Strange data, fallback to create default RRD records for '
                     . $this->getId(),
                     NULL, WATCHDOG_DEBUG);
-            
+
             return $this->_manageNewRecord($stat);
-        
+
         }
-        
+
         return FALSE;
     }
-    
+
     protected function _manageNewRecord(StatInterface $stat)
     {
 
         $this->logger->log("Easy case, it's a new RRD record, we create 1 point for each of the 5 graphics.", NULL, WATCHDOG_DEBUG);
-        
+
         // we also update the definition with last recorded timestamp
         $this->last_timestamp = $stat->getTimestamp();
 
@@ -537,7 +541,7 @@ class Definition Extends ProdObject
         $this->points_before_level[5] = $this->points_per_aggregate-1;
 
         $id = $this->save();
-        
+
         // Create 1 point on each of the 5 graphs
         // In fact, we have a valid value for each graph
         $value = $stat->getValue();
@@ -551,20 +555,20 @@ class Definition Extends ProdObject
                 ->flagNew(TRUE);
             $this->points->add($point);
         }
-        
+
         // Save all theses new RRD points
         $this->points->setRRDId($id);
         $this->points->save();
-        
+
         return TRUE;
 
     }
 
     /**
-     * Load previous RRD entries for this Definition that could be used to 
+     * Load previous RRD entries for this Definition that could be used to
      * compute aggregates
-     * 
-     * Note 1: this is done before computation of the new values for 
+     *
+     * Note 1: this is done before computation of the new values for
      *  $this->points_before_level
      * Note 2: we always try to load the 1st point on different graph level
      *  to help detecting RRD definitions having no RRD points yet or having
@@ -581,10 +585,10 @@ class Definition Extends ProdObject
           4 => array(),
           5 => array(),
         );
-        
+
         // For each graph level --except the last one --
         // load points that could be needed for aggregates later.
-        
+
         /*$max_level = 0;
         for ($level = 1; $level< 5; $level++) {
 
@@ -601,11 +605,11 @@ class Definition Extends ProdObject
         $query = db_select('prod_rrd', 'r')
               ->fields('r')
               ->condition('prs_id', $this->getId());
-        
+
         // TODO: review: 1st point not needed?
         // we will select all 1st points
         // and all needed points on differents levels if any
-        
+
         // on level 5 we only need the 1st point. But query is maybe faster
         // with a simple filter
         /*$orcond = db_or();
@@ -613,7 +617,7 @@ class Definition Extends ProdObject
         $andcond1
             ->condition('pr_aggregate_level', $max_level, '<=')
             ->condition('pr_rrd_index', $this->points_per_aggregate, '<=');
-        
+
         $orcond->condition($andcond1);
         $orcond->condition('pr_rrd_index', 1, '=');
         $query->condition($orcond)
@@ -622,7 +626,7 @@ class Definition Extends ProdObject
           ->orderBy('pr_aggregate_level', 'ASC')
           ->orderBy('pr_rrd_index', 'ASC');
         $results = $query->execute();
-        
+
         foreach ($results as $result) {
 
             $point = new Point(
@@ -660,9 +664,9 @@ class Definition Extends ProdObject
         for ($i = 2; $i <= 5; $i++) {
 
             if ($this->points_before_level[$i] == 0) {
-                
+
                 // new aggregate!
-                
+
                 $this->new_points[$i] = 1;
 
                 if ($i < 5) {
@@ -673,10 +677,10 @@ class Definition Extends ProdObject
                 $this->points_before_level[$i] = $this->points_per_aggregate;
 
             } else {
-                
+
                 // nothing on that level
                 $this->new_points[$i] = 0;
-                
+
             }
 
         }
@@ -685,26 +689,57 @@ class Definition Extends ProdObject
 
     protected function _incrementRRDIndex()
     {
+
+        // FIXME: a factory and two version? ...
+        global $databases;
+        $driver = ucFirst($databases['default']['default']['driver']);
+
         foreach( $this->new_points as $level => $nb_points ) {
 
             if ( $nb_points > 0 ) {
-                // We cannot use a db_update because of the order by.
-                // The order by pr_rrd_index DESC is there to avoid a duplicate
-                // key on unique index for MySQL while updating (no deferred
-                // index check).
-                // TODO: check that this query works on postgreSQL
-                $results = db_query("
-                    UPDATE {prod_rrd}
-                    SET pr_rrd_index=pr_rrd_index + 1
-                    WHERE prs_id=:id
-                    AND pr_aggregate_level=:level
-                    ORDER BY prs_id ASC,
-                             pr_aggregate_level ASC,
-                             pr_rrd_index DESC
-                ", array(
-                    ':id' => $this->getId(),
-                    ':level' => $level
-                ));
+                if ('Pgsql' === $driver) {
+                    // deferrable constraint not available, fuck
+                    /*db_query("
+                      SET CONSTRAINTS prod_rrd_pkey DEFERRED;
+                    ");*/
+                    // so let's use an awfull hack. Pertty sure I'd better stop
+                    // trying to update all rows, not efficient in terms of database
+                    $results = db_query("
+                        UPDATE {prod_rrd}
+                        SET pr_rrd_index=-(pr_rrd_index + 1)
+                        WHERE prs_id=:id
+                        AND pr_aggregate_level=:level
+                    ", array(
+                        ':id' => $this->getId(),
+                        ':level' => $level
+                    ));
+                    $results = db_query("
+                        UPDATE {prod_rrd}
+                        SET pr_rrd_index=-(pr_rrd_index)
+                        WHERE prs_id=:id
+                        AND pr_aggregate_level=:level
+                    ", array(
+                        ':id' => $this->getId(),
+                        ':level' => $level
+                    ));
+                } else {
+                    // We cannot use a db_update because of the order by.
+                    // The order by pr_rrd_index DESC is there to avoid a duplicate
+                    // key on unique index for MySQL while updating (no deferred
+                    // index check).
+                    $results = db_query("
+                        UPDATE {prod_rrd}
+                        SET pr_rrd_index=pr_rrd_index + 1
+                        WHERE prs_id=:id
+                        AND pr_aggregate_level=:level
+                        ORDER BY prs_id ASC,
+                                pr_aggregate_level ASC,
+                                pr_rrd_index DESC
+                    ", array(
+                        ':id' => $this->getId(),
+                        ':level' => $level
+                    ));
+                }
             }
         }
     }
@@ -723,7 +758,7 @@ class Definition Extends ProdObject
 
             // note that $old_point should always contain at least 1 entry at
             // index 0; this is ensured by _detectProblems() call
-            
+
             // init aggregates
             $agg_min = null;
             $agg_max = null;
@@ -731,7 +766,7 @@ class Definition Extends ProdObject
             $agg_value = 0;
             $nb_points = 0;
             $last_timestamp = $timestamp;
-            
+
             if ( 1 == $level ) {
 
                 // easy case, on 1st level graph we have no aggregation
@@ -749,27 +784,27 @@ class Definition Extends ProdObject
                 // $this->points_per_aggregate (last value for this point, next
                 // turn a new entry will be created on this level).
                 foreach ( $this->last_entries[ $level -1 ] as $idx => $low_point) {
-                    
-                    // new points on previous level may have added one extra 
+
+                    // new points on previous level may have added one extra
                     // point that should not be computed in this aggregate
                     if ( $idx < $this->points_per_aggregate) {
-                        
+
                         $nb_points++;
 
                         $value = $low_point->getValue();
                         $min_value = $low_point->getMinValue();
                         $max_value = $low_point->getMaxValue();
-                        
+
                         $total_value += $value;
-                        
+
                         if (is_null($agg_max) || ($max_value > $agg_max) ) {
                             $agg_max = $max_value;
                         }
-                        
+
                         if (is_null($agg_min) || ($min_value < $agg_min) ) {
                             $agg_min = $min_value;
                         }
-                        
+
                         if ( 0 == $idx ) {
                             // we take timestamp of last entry only
                             $last_timestamp = $low_point->getTimestamp();
@@ -785,40 +820,40 @@ class Definition Extends ProdObject
 
             // create the point to save
             $point = new Point( 1, $level );
-            
+
             $point->setValue($agg_value)
               ->setValueMax($agg_max)
               ->setValueMin($agg_min)
               ->setTimestamp($last_timestamp);
-            
+
 
             if ( 1 == $this->new_points[$level]) {
-                
+
                 // We know that this point is not an update but an insert on
                 // the db storage (like 'always' for level 1 and sometimes for others).
                 // Becomes the new rrd_index 1 in our local storage (i.e. 0 in this structure)
                 array_unshift($this->last_entries[$level], $point);
-                
+
                 // new point, needs insert and not update query
                 $point->flagNew(TRUE);
-                
+
             } else {
-                
+
                 // this point will be updated on the db side, store it locally
                 // so aggregates computations for next level will be exact.
                 $this->last_entries[$level][0] = $point;
-                
+
                 // it is not a new point
                 $point->flagNew(FALSE);
             }
-            
+
 
             // record this point, with later a db save,
             // either an insert or an update
             // it will be an insert if _incrementRRDIndex has removed
             // previous record with same key.
             $this->points->add($point);
-            
+
         } // end loop on graph levels
 
         // points created are saved later, same fr the rddDef record
@@ -852,14 +887,14 @@ class Definition Extends ProdObject
                     'prs_points_before_level_5' => $this->points_before_level[5],
             ))
             ->execute();
-            
+
             return $this->id;
-          
+
         } else {
-            
+
             // New record
             // This should be an insert
-            
+
             db_merge('prod_rrd_settings')
                 ->key( array(
                     'ptq_stat_tid'  => $this->stat_task_id,
@@ -877,7 +912,7 @@ class Definition Extends ProdObject
                    'prs_points_before_level_5' => $this->points_before_level[5],
                 ))
                 ->execute();
-            
+
             $result = db_select('prod_rrd_settings', 's')
                 ->fields('s', array('prs_id'))
                 ->condition('ptq_stat_tid', $this->stat_task_id)
@@ -887,9 +922,9 @@ class Definition Extends ProdObject
             foreach($result as $result) {
                 $id = $result->prs_id;
             }
-            
+
             $this->setId($id);
-            
+
             return $id;
         }
 /*        } catch (Exception $e) {

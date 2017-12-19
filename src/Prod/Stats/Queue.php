@@ -59,6 +59,28 @@ class Queue extends ProdObservable
         return $this->initHelpers();
     }
 
+    public function getQueuedTasks()
+    {
+        // get list of all observers
+        $this->_loadObservers();
+
+        // build our queue
+        $this->_loadQueue();
+
+        // observers should register tasks using $this->queueTask()
+        $this->notify(ProdObservable::SIGNAL_STAT_TASK_INFO);
+
+        $tasks = array();
+        // Loop on the queue which is indexed on the timestamps
+        foreach ($this->queue as $timestamp => $records) {
+            foreach ($records as $k => $task) {
+                $tasks[] = $task;
+            }
+        }
+        return $tasks;
+    }
+
+
     /**
      * Main function
      *

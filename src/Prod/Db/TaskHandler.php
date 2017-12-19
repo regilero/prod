@@ -10,12 +10,18 @@ use Drupal\Prod\Stats\TaskInterface;
 use Drupal\Prod\Stats\Rrd\Manager;
 use Drupal\Prod\Stats\Queue;
 use Drupal\Prod\Monitoring\Cacti;
+use Drupal\Prod\Error\DbAnalyzerException;
 
 /**
  * Task Handler for Db tools, this is connecting us to the task queue
  */
 class TaskHandler extends Task implements TaskInterface, ProdObserverInterface
 {
+
+    /**
+     * Conf token, VERY important, defined a UNIQUE token for you configuration
+     */
+    protected $conf_token = 'dbcollect';
 
     /**
      *
@@ -147,11 +153,44 @@ class TaskHandler extends Task implements TaskInterface, ProdObserverInterface
 
                 foreach($tables as $table) {
 
-                    $table->save();
+                    // Start a new transaction
+                    $transaction = db_transaction();
+                    try {
+
+                        $table->save();
+                        $limit --;
+
+                    } catch (Exception $e) {
+                        $transaction->rollback();
+                        $this->logger->log($e, NULL, WATCHDOG_CRITICAL);
+                    }
+                    try {
+                        // implicit $transaction->commit();, Drupal way
+                        unset($transaction);
+                    } catch (Exception $e) {
+                        $this->logger->log($e, NULL, WATCHDOG_CRITICAL);
+                        die('transaction mess');
+                    }
+                }
+            }
+
+
+            /* TODO
+            if ($limit > 0) {
+
+                // still have some place, let's try stats on index
+
+                $indexes = $dbAnalyser->extractIndexes($limit);
+
+                foreach($indexes as $index) {
+
+                    $index->save();
                     $limit --;
 
                 }
-            }
+
+            }*/
+
 
             // Add a global aggregate record for the database
             // we always do that, no matter about the limits
@@ -162,18 +201,66 @@ class TaskHandler extends Task implements TaskInterface, ProdObserverInterface
             $tables[] = $dbRecord;
 
             // RRD storage, now that all tables are at least recorded once
+            // WARN: ManageRotations contains transaction management
             if (variable_get('prod_stats_rrd_enabled', FALSE)) {
                 $rrd_manager = new Manager();
                 $rrd_manager
-                  ->loadMultipleProviders($this->getId(), $tables)
-                  ->manageRotations();
+                ->loadMultipleProviders($this->getId(), $tables)
+                ->manageRotations();
             }
 
             // Try to guess some default user group values for records
             // having none
             $dbAnalyser->setDefaultUserGroup();
 
+
         } // end database loop
+    }
+
+    /**
+     * return the list of StatsProviderInterface objects managed
+     */
+    public function getStatsProviders() {
+
+        // This is the Drupal global database record !!
+        global $databases;
+
+        // number of tables to handle per run
+        // $limit = (int) variable_get('prod_stats_batch_limit',50);
+        $limit = 1000;
+
+        $ftables = [];
+
+        foreach($databases as $identifier => $databases_arr) {
+
+            $dbAnalyser = AnalyzerFactory::get($databases_arr,$identifier);
+
+            // still have the right to track some tables on this run
+
+            $tables = $dbAnalyser->extractTables($limit);
+
+            foreach ($tables as $table) {
+                try{
+                    //var_dump($table);
+                    $table->loadId();
+                    $ftables[] = $table;
+                } catch (DbAnalyzerException $e) {
+                    // stat nevers saved yet
+                    continue;
+                }
+            }
+
+            // Add a global aggregate record for the database
+            // we always do that, no matter about the limits
+
+            $dbRecord = $dbAnalyser->ManageDbRecord();
+
+            // Add this record on the collection, so that it can be used in rrd
+            $ftables[] = $dbRecord;
+
+
+        } // end database loop
+        return $ftables;
     }
 
 }

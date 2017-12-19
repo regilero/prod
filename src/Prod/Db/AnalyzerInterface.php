@@ -18,7 +18,7 @@ interface AnalyzerInterface
      * @param string $identifier Drupal's internal identifier for this database
      *
      * @return AnalyzerInterface
-     * 
+     *
      * @throws Drupal\Prod\Error\DbAnalyzerException
      */
     public function init($db_arr, $identifier);
@@ -34,11 +34,20 @@ interface AnalyzerInterface
      */
     public function extractTables($limit);
 
+
+    /**
+     * Return the query used to list tables and tables informations
+     */
+    public function _getTablesInformationsQuery();
+    public function _getQueryFilterTableList();
+    public function _getQueryFilterTableExpr();
+    public function _getTablesGroupExpression();
+
     /**
      * Add or update a db record containing summ of tables data.
      *
      * @return TableInterface object (the created or updated record)
-     * 
+     *
      * @throws Drupal\Prod\Error\DbAnalyzerException
      */
     public function ManageDbRecord();
@@ -47,7 +56,7 @@ interface AnalyzerInterface
      * Try to guess some good human readable groups for all contained tables.
      *
      * @return AnalyzerInterface
-     * 
+     *
      * @throws Drupal\Prod\Error\DbAnalyzerException
      */
     public function setDefaultUserGroup();

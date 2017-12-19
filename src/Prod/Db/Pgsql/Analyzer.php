@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\Prod\Db\Mysql;
+namespace Drupal\Prod\Db\Pgsql;
 
 use Drupal\Prod\Error\DbAnalyzerException;
 use Drupal\Prod\Error\DevelopperException;
@@ -27,7 +27,7 @@ class Analyzer extends AbstractAnalyzer implements AnalyzerInterface
     public function init($db_arr, $identifier)
     {
 
-        $this->setDbDriver('mysql');
+        $this->setDbDriver('pgsql');
 
         $this->setDbIdentifier($identifier);
 
@@ -58,37 +58,64 @@ class Analyzer extends AbstractAnalyzer implements AnalyzerInterface
      */
     public function _getTablesInformationsQuery() {
         $qry = "
-            SELECT table_name,
-                   table_rows * 1000,
-                   data_length * 1000,
-                   index_length * 1000
-            FROM information_schema.TABLES
-            WHERE table_schema=:db_name
+        SELECT
+            -- n.nspname AS schemaname,
+            c.relname as table_name,
+            reltuples * 1000 as table_rows,
+            pg_table_size(c.oid) * 1000 as data_length,
+            pg_indexes_size(c.oid) * 1000 as index_length,
+            s.seq_scan * 1000 as seqscan_nb,
+            s.seq_tup_read * 1000 as seqscan_rows,
+            s.idx_scan * 1000 as idxscan_nb,
+            s.idx_tup_fetch * 1000 as idxscan_rows,
+            s.n_tup_ins * 1000 as inserts,
+            s.n_tup_upd * 1000 as updates,
+            s.n_tup_del * 1000 as deletes,
+            (extract(epoch from (now() - s.last_autovacuum))*1000)::bigint as last_autovaccuum,
+            (extract(epoch from (now() - s.last_autoanalyze))*1000)::bigint as last_autoanalyze,
+            s.autovacuum_count * 1000 as nb_autovaccuum,
+            s.autoanalyze_count * 1000 as nb_autoanalyze
+        FROM pg_class c
+          LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+          LEFT JOIN pg_stat_user_tables s ON c.oid = s.relid
+        WHERE c.relkind IN ('r','')
+          AND n.nspname <> 'pg_catalog'
+          AND n.nspname <> 'information_schema'
+          AND n.nspname !~ '^pg_toast'
+          AND pg_catalog.pg_table_is_visible(c.oid)
+          AND :db_name = :db_name
         ";
         return $qry;
     }
 
+
     public function _getQueryFilterTableList()
     {
-        return " AND table_name IN (:list)";
+        return " AND c.relname IN (:list)";
     }
+
     public function _getQueryFilterTableExpr()
     {
-        return "AND table_name like ':prefix%'";
+        return "AND c.relname like ':prefix%'";
     }
 
     protected function _getUntrackedTables($limit)
     {
 
         $query = "
-            SELECT table_name
-            FROM information_schema.TABLES t
-            LEFT JOIN {prod_db_stats} s
-              ON (s.pdb_identifier = :identifier
-                AND s.pdb_db_name = t.table_schema
-                AND s.pdb_table = t.table_name)
-            WHERE t.table_schema = :db_name
-            AND s.pdb_db_name IS NULL
+            SELECT c.relname as table_name
+            FROM pg_class c
+              LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+              LEFT JOIN {prod_db_stats} s
+                ON (s.pdb_identifier = :identifier
+                  AND s.pdb_db_name = :db_name
+                  AND s.pdb_table = c.relname)
+            WHERE c.relkind IN ('r','')
+                AND n.nspname <> 'pg_catalog'
+                AND n.nspname <> 'information_schema'
+                AND n.nspname !~ '^pg_toast'
+                AND pg_catalog.pg_table_is_visible(c.oid)
+                AND s.pdb_db_name IS NULL
         ";
         $args = array(
             ':db_name' => $this->getDbName(),
@@ -97,7 +124,7 @@ class Analyzer extends AbstractAnalyzer implements AnalyzerInterface
 
         // On databases using some prefix we need to filter out the results
         if (!empty($this->getDbPrefix())) {
-            $query .= "AND t.table_name like ':prefix%' \n";
+            $query .= "AND c.relname like ':prefix%' \n";
             $args[':prefix'] = $this->getDbPrefix();
         }
 
@@ -121,17 +148,19 @@ class Analyzer extends AbstractAnalyzer implements AnalyzerInterface
 
     }
 
+
     public function _getTablesGroupExpression()
     {
         return "
             CASE
-            WHEN  LOCATE('_',pdb_table) > 0
+            WHEN position('_' IN pdb_table) > 0
             THEN
-                CONCAT( UCASE( LEFT(pdb_table, 1)), SUBSTRING(pdb_table, 2, LOCATE('_',pdb_table) -2) )
+                UPPER(LEFT(pdb_table, 1)) || SUBSTRING(pdb_table, 2, position('_' in pdb_table) -2)
             ELSE
-                CONCAT( UCASE(LEFT(pdb_table, 1)), LCASE(SUBSTRING(pdb_table,2,7)) )
+                UPPER(LEFT(pdb_table, 1)) || LOWER(SUBSTRING(pdb_table,2,7))
             END
         ";
+
     }
 
 }

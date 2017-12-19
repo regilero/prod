@@ -7,7 +7,7 @@
     "authors" : [{
             "name" : "regilero",
             "email" : "regis.leroy@makina-corpus.com"
-        },
+        }
     ],
     "minimum-stability" : "dev"
 }

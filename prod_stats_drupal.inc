@@ -30,3 +30,35 @@ function prod_drupal_stats_indexer() {
 
 }
 
+/**
+ * Json Db reports for drush
+ */
+function prod_drupal_db_report() {
+  module_load_include('inc', 'prod', 'prod.admin');
+
+  drush_print("# Databases", 0, NULL, TRUE);
+  $db_reader = \Drupal\Prod\Db\Reader::getInstance('db_dbs');
+  $data = $db_reader->getDatabasesData();
+  foreach($data as $k => $records) {
+      foreach ($records as $key2 => $db) {
+          $line = "Database " . $db['db'] . " Tables: " . $db['nb_tables_h'];
+          $line .= ' Rows: '. $db['rows_h'];
+          drush_print($line, 2, NULL, TRUE);
+      }
+  }
+
+  drush_print("# Top 50 Tables (size)", 0, NULL, TRUE);
+  $db_reader = \Drupal\Prod\Db\Reader::getInstance('db_top');
+  $rows_per_page= 50;
+  $data = $db_reader->getTopTablesData($rows_per_page, 1, 'size', 'all');
+  foreach($data as $k => $records) {
+      foreach ($records as $key2 => $table) {
+          $line = 'Full Size:'. $table['full_size_h'];
+          $line .= ' [Data Size:'. $table['size_h'];
+          $line .= ' Idx Size:'. $table['idx_size_h'] . "]";
+          $line .= "\t" . $table['rows_h'] . ' rows (avg '. $table['avg_row_size_h'] . "/row)";
+          $line .= "\t" . $table['db'] . "." . $table['table'];
+          drush_print($line, 2, NULL, TRUE);
+      }
+  }
+}

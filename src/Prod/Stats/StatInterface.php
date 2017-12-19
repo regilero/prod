@@ -9,7 +9,7 @@ use Drupal\Prod\Error\InvalidStatException;
  */
 interface StatInterface
 {
-    
+
     /**
      * constructor of StatInterface object
      *
@@ -31,15 +31,15 @@ interface StatInterface
      * Get the stat Timestamp
      *
      * @return int the UNIX timestamp
-     * 
+     *
      */
     public function getTimestamp();
 
     /**
      * Get the stat Value
      *
-     * @return int the Stat Value int '2-decimal-as-int' form
-     * 
+     * @return int the Stat Value int '3-decimal-as-int' form
+     *
      */
     public function getValue();
 
@@ -48,7 +48,7 @@ interface StatInterface
      * Get the Stat Provider Id
      *
      * @return int the stat provider id
-     * 
+     *
      */
     public function getProviderId();
 
@@ -56,7 +56,7 @@ interface StatInterface
      * Get the Stat Column Id
      *
      * @return string the Stat column key value
-     * 
+     *
      */
     public function getColId();
 

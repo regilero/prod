@@ -20,6 +20,11 @@ class Bootstrap extends DrupalTask implements TaskInterface, StatsProviderInterf
 {
 
     /**
+     * Conf token, VERY important, defined a UNIQUE token for you configuration
+     */
+    protected $conf_token = 'bootstrap';
+
+    /**
      *
      * @var \Drupal\Prod\Stats\Bootstrap object (for Singleton)
      */

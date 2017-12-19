@@ -20,6 +20,11 @@ class Nodes extends DrupalTask implements TaskInterface, StatsProviderInterface,
 {
 
     /**
+     * Conf token, VERY important, defined a UNIQUE token for you configuration
+     */
+    protected $conf_token = 'nodes';
+
+    /**
      *
      * @var \Drupal\Prod\Stats\Nodes object (for Singleton)
      */

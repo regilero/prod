@@ -14,7 +14,7 @@ define('PROD_MONITORING_PENDING', 4);
 
 /**
  * Nagios syntax output manager. This is an exit function!
- * 
+ *
  * @param int $status
  * @param string $message
  * @param string $perfdata
@@ -75,16 +75,16 @@ function prod_monitor_remove_drush_error_handler() {
  * Main entry point for the Monitor stats report generation (cacti-like export)
  */
 function prod_monitor_stats() {
-  
+
 
   $registry = ProdRegistry::initInstance();
 
   prod_monitor_remove_drush_error_handler();
-  
+
   try {
 
     $monitor = Cacti::getInstance();
-    // this hsould be outputing lines via drush_print
+    // this should be outputing lines via drush_print
     $monitor->render();
     // final line, we use Nagios syntax but this is not necessary
     prod_monitor_exit(PROD_MONITORING_OK, 'end of monitoring report');
@@ -101,9 +101,9 @@ function prod_monitor_stats() {
 function prod_monitor() {
 
   $registry = ProdRegistry::initInstance();
-  
+
   prod_monitor_remove_drush_error_handler();
-  
+
   try {
 
     $monitor = Nagios::getInstance();
@@ -112,9 +112,9 @@ function prod_monitor() {
     $perf = '';
     $status = $monitor->check($output, $perf);
     prod_monitor_exit($status, $output, $perf);
-    
+
   } catch (Exception $e) {
-      
+
     if ($e instanceof MonitoringException) {
       prod_monitor_exit(PROD_MONITORING_CRITICAL, 'Monitoring Exception occured: ' . $e->getMessage());
     } else {
