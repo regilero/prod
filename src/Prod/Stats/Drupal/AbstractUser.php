@@ -18,6 +18,11 @@ abstract class AbstractUser extends DrupalTask
     // Stat provider id. This comes from Task
     protected $id;
 
+    /**
+     * Conf token, VERY important, defined a UNIQUE token for you configuration
+     */
+    protected $conf_token = 'users';
+
     protected $total_users;
     protected $total_users_time = 0;
     protected $enabled_users;
@@ -528,4 +533,5 @@ abstract class AbstractUser extends DrupalTask
         }
         return $defaults;
     }
+
 }

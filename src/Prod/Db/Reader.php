@@ -358,6 +358,174 @@ class Reader extends ProdObject
         return $formatter;
     }
 
+    protected function _getTablesFullFormatter()
+    {
+        $formatter = new Formatter();
+
+        $formatter->setGraphType('TreeMap')
+        // Nope... TODO, variation of main data source
+             ->setGraphLeftAxis('full_size', t('Full Size'));
+
+        $col = new Column();
+        $col->mapColumn('pdb_id')
+            ->setLabel('id')
+            ->addFormat('id')
+            ->setTitle('id');
+        $formatter->addColumn( $col );
+
+        $col = new Column();
+        $col->setMultipleMap( array(
+                'type' => 'concat',
+                'pdb_db_name' => 'field',
+                ' (' => 'str',
+                'pdb_identifier' => 'field',
+                ')' => 'str'
+            ))
+            ->addFormat('check_plain')
+            ->flagInTitle(TRUE)
+            ->setTitle('Db')
+            ->setLabel('db');
+        $formatter->addColumn( $col );
+
+        $col = new Column();
+        $col->mapColumn('pdb_ugroup')
+            ->addFormat('check_plain')
+            ->setLabel('category')
+            ->setTitle('Category')
+            ->flagInTooltip(TRUE);
+        $formatter->addColumn( $col );
+
+        $col = new Column();
+        $col->mapColumn('pdb_table')
+            ->addFormat('check_plain')
+            ->flagInTitle(TRUE)
+            ->setTitle('Db Table')
+            ->setLabel('table');
+        $formatter->addColumn( $col );
+
+        $col = new Column();
+        $col->mapColumn('pdb_full_size')
+            ->setLabel('full_size')
+            ->addFormat('undo_factor1000')
+            ->setTitle('Full Size')
+            ->flagBase1024(TRUE)
+            ->setStyle('text-align: right')
+            ->addInvalidEnv('table');
+        $formatter->addColumn( $col );
+
+        $col = new Column();
+        $col->mapColumn('pdb_full_size')
+            ->setLabel('full_size_h')
+            ->addFormat('undo_factor1000')
+            ->addFormat('human_bytes')
+            ->setTitle('Full Size')
+            ->flagBase1024(TRUE)
+            ->setStyle('text-align: right')
+            ->flagInTooltip(TRUE);
+        $formatter->addColumn( $col );
+
+
+        $col = new Column();
+        $col->mapColumn('average_row_size')
+            ->setLabel('avg_row_size_h')
+            ->addFormat('3_dec')
+            ->addFormat('human_bytes')
+            ->flagBase1024(TRUE)
+            ->setTitle('Average Row Size')
+            ->setStyle('text-align: right')
+            ->flagInTooltip(TRUE);
+        $formatter->addColumn( $col );
+
+        $col = new Column();
+        $col->mapColumn('average_row_size')
+            ->setLabel('avg_row_size')
+            ->addFormat('3_dec')
+            ->flagBase1024(TRUE)
+            ->setTitle('Average Row Size')
+            ->addInvalidEnv('table');
+        $formatter->addColumn( $col );
+
+        $col = new Column();
+        $col->mapColumn('pdb_timestamp')
+            ->setLabel('timestamp')
+            ->addFormat('interval')
+            ->setTitle('Last Check')
+            ->setStyle('text-align: right');
+        $formatter->addColumn( $col );
+
+        $formatter->stackByValue('category');
+
+        return $formatter;
+    }
+
+    protected function _getTablesBrowserFormatter()
+    {
+        $formatter = new Formatter();
+
+        $formatter->setGraphType('Tree');
+
+        $col = new Column();
+        $col->mapColumn('prs_id')
+            ->addFormat('id')
+            ->setTitle('id')
+            ->setLabel('id');
+        $formatter->addColumn( $col );
+
+        $col = new Column();
+        $col->setMultipleMap( array(
+                'type' => 'concat',
+                'pdb_db_name' => 'field',
+                ' (' => 'str',
+                'pdb_identifier' => 'field',
+                ')' => 'str'
+            ))
+            ->addFormat('check_plain')
+            ->flagInTitle(TRUE)
+            ->setTitle('Db')
+            ->setLabel('db');
+        $formatter->addColumn( $col );
+
+
+        $col = new Column();
+        $col->mapColumn('pdb_ugroup')
+            ->addFormat('check_plain')
+            ->setLabel('category')
+            ->setTitle('Category')
+            ->flagInTooltip(TRUE);
+        $formatter->addColumn( $col );
+
+        $col = new Column();
+        $col->mapColumn('pdb_table')
+            ->addFormat('check_plain')
+            ->flagInTitle(TRUE)
+            ->setTitle('Db Table')
+            ->setLabel('table');
+        $formatter->addColumn( $col );
+
+        $col = new Column();
+        $col->mapColumn('pr_timestamp')
+            ->setLabel('time')
+            ->setTitle('time');
+        $formatter->addColumn( $col );
+
+        $col = new Column();
+        $col->mapColumn('pdb_timestamp')
+            ->addFormat('interval')
+            ->setLabel('timestamp')
+            ->setTitle('Last Check')
+            ->setStyle('text-align: right');
+        $formatter->addColumn( $col );
+
+        $col = new Column();
+        $col->mapColumn('pdb_enable')
+            ->addFormat('bool')
+            ->setLabel('enabled')
+            ->setTitle('Enabled');
+        $formatter->addColumn( $col );
+
+        return $formatter;
+    }
+
     protected function _getDatabasesFormatter()
     {
         $formatter = new Formatter();
@@ -465,6 +633,20 @@ class Reader extends ProdObject
         return $formatter->renderDefinition();
     }
 
+    public function getTablesFullDefinition()
+    {
+        $formatter = $this->_getTablesFullFormatter();
+
+        return $formatter->renderDefinition();
+    }
+
+    public function getTablesBrowserDefinition()
+    {
+        $formatter = $this->_getTablesBrowserFormatter();
+
+        return $formatter->renderDefinition();
+    }
+
     /**
      * Return the top tables rows
      *
@@ -545,6 +727,97 @@ class Reader extends ProdObject
 
         return $formatter->render();
 
+    }
+
+
+    /**
+     * Return the tables rows
+     *
+     * @param string $db 'all' or the database name
+     */
+    public function getTablesFullData($data='full_size', $db='all')
+    {
+
+        $query = db_select('prod_db_stats', 's')
+            ->fields('s',array(
+                'pdb_id',
+                'pdb_identifier',
+                'pdb_db_name',
+                'pdb_table',
+                'pdb_full_size',
+                'pdb_timestamp',
+                'pdb_ugroup'))
+            ->condition('pdb_is_database', 0)
+            // FIXME: UGLy HACK :-)
+            //->condition('pdb_ugroup', 'Prod', '<>')
+            ->condition('pdb_enable', 1);
+        // this one does not return $this ...
+        $query->addExpression('CASE WHEN (s.pdb_nb_rows>0) THEN s.pdb_full_size / s.pdb_nb_rows ELSE 0 END', 'average_row_size');
+
+        if ( 'all' != $db ) {
+            $query->condition('pdb_identifier', $db);
+        }
+
+        switch($data) {
+            case 'full_size':
+                $query->orderBy('pdb_full_size','DESC');
+                break;
+            case 'ratio':
+                $query->orderBy('average_row_size','DESC');
+                break;
+            default:
+                throw new ProdException('Unknown data parameter used.');
+        }
+
+        $query->orderBy('pdb_identifier','ASC');
+        $query->orderBy('pdb_db_name','ASC');
+        $query->orderBy('pdb_ugroup','ASC');
+        $query->orderBy('pdb_table','ASC');
+
+        $result = $query->execute();
+
+        $formatter = $this->_getTablesFullFormatter();
+
+        $formatter->setData($result);
+
+        return $formatter->render();
+    }
+
+    /**
+     * Return the tables rows
+     *
+     * @param string $db 'all' or the database name
+     */
+    public function getTablesBrowserData($db)
+    {
+        $query = db_select('prod_db_stats', 's')
+            ->fields('s',array(
+                'pdb_id',
+                'pdb_identifier',
+                'pdb_db_name',
+                'pdb_table',
+                'pdb_timestamp',
+                'pdb_ugroup',
+                'pdb_enable'))
+            ->condition('pdb_is_database', 0);
+
+        if ( 'all' != $db ) {
+            $query->condition('pdb_identifier', $db);
+        }
+
+
+        $query->orderBy('pdb_identifier','ASC');
+        $query->orderBy('pdb_db_name','ASC');
+        $query->orderBy('pdb_ugroup','ASC');
+        $query->orderBy('pdb_table','ASC');
+
+        $result = $query->execute();
+
+        $formatter = $this->_getTablesBrowserFormatter();
+
+        $formatter->setData($result);
+
+        return $formatter->render();
     }
 
 

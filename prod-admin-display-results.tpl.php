@@ -32,6 +32,10 @@ div.prod-d3tooltip {
   display: none;
 }
 
+svg.TreeMap rect {
+  fill: none;
+  stroke: #fff;
+}
 </style>
 <script type="text/javascript">
 
@@ -121,50 +125,54 @@ function initGraph( graph ) {
         .attr('class', 'prod-actions');
 
     graph.timeFormat = d3.time.format('%Y-%m-%dT%H:%M:%S');
-    // Create Axis ----
-    if ( graph_def.pivot ) {
-        graph.x = d3.time.scale()
-            .range([0, width]);
-    } else {
-        graph.x = d3.scale.ordinal()
-            .rangeRoundBands([0, width], .1);
-    }
 
-    graph.yLeft = d3.scale.linear()
-                .range([height, 0]);
+    if ( graph_def.has_axis ) {
 
-    graph.yRight = d3.scale.linear()
-                .range([height, 0]);
+        // Create Axis ----
+        if ( graph_def.pivot ) {
+            graph.x = d3.time.scale()
+                .range([0, width]);
+        } else {
+            graph.x = d3.scale.ordinal()
+                .rangeRoundBands([0, width], .1);
+        }
 
-    graph.xAxis = d3.svg.axis()
-        .scale(graph.x)
-        .tickSize(1)
-        .orient("bottom");
-    if ( graph_def.pivot ) {
-        graph.xAxis.tickFormat(graph.timeFormat)
-            .innerTickSize(10)
-            .ticks(30);
-    }
+        graph.yLeft = d3.scale.linear()
+                    .range([height, 0]);
 
-    graph.yAxisLeft = d3.svg.axis()
-        .scale(graph.yLeft)
-        .tickSize(1)
-        .innerTickSize(10)
-        .ticks(10)
-        .orient("left");
-    if (graph.def.graphic.axis_y1.is_1024) {
-        graph.yAxisLeft.tickFormat(bytesToString)
-    }
+        graph.yRight = d3.scale.linear()
+                    .range([height, 0]);
 
-    if ( graph_def.has_y2 ) {
-        graph.yAxisRight = d3.svg.axis()
-            .scale(graph.yRight)
+        graph.xAxis = d3.svg.axis()
+            .scale(graph.x)
+            .tickSize(1)
+            .orient("bottom");
+        if ( graph_def.pivot ) {
+            graph.xAxis.tickFormat(graph.timeFormat)
+                .innerTickSize(10)
+                .ticks(30);
+        }
+
+        graph.yAxisLeft = d3.svg.axis()
+            .scale(graph.yLeft)
             .tickSize(1)
             .innerTickSize(10)
             .ticks(10)
-            .orient("right");
-        if (graph.def.graphic.axis_y2.is_1024) {
-            graph.yAxisRight.tickFormat(bytesToString)
+            .orient("left");
+        if (graph.def.graphic.axis_y1.is_1024) {
+            graph.yAxisLeft.tickFormat(bytesToString)
+        }
+
+        if ( graph_def.has_y2 ) {
+            graph.yAxisRight = d3.svg.axis()
+                .scale(graph.yRight)
+                .tickSize(1)
+                .innerTickSize(10)
+                .ticks(10)
+                .orient("right");
+            if (graph.def.graphic.axis_y2.is_1024) {
+                graph.yAxisRight.tickFormat(bytesToString)
+            }
         }
     }
 
@@ -172,6 +180,7 @@ function initGraph( graph ) {
     graph.svg = graph.placeholder.append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
+        .attr("class", graph.def.graphic.type)
       .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -181,42 +190,45 @@ function initGraph( graph ) {
         .attr("width", width)
         .attr("height", height);
 
-    // Add x Axis
-    graph.svg.append("g")
-        .attr("class", "x axis x-axis")
-        .attr("transform", "translate(0," + height + ")");
-
-    // add right axis
-    if ( graph_def.has_y2 ) {
+    if ( graph_def.has_axis ) {
+        // Add x Axis
         graph.svg.append("g")
-            .attr("class", "y axis axisRight")
-            .attr("transform", "translate(" + (width) + ",0)")
-            .style("fill", 'red')
+            .attr("class", "x axis x-axis")
+            .attr("transform", "translate(0," + height + ")");
+
+        // add right axis
+        if ( graph_def.has_y2 ) {
+            graph.svg.append("g")
+                .attr("class", "y axis axisRight")
+                .attr("transform", "translate(" + (width) + ",0)")
+                .style("fill", 'red')
+                .append("text")
+                    .attr("y", 6)
+                    .attr("dy", "-2em")
+                    .attr("dx", "2em")
+                    .style("text-anchor", "end")
+                    .text(graph.def.graphic.axis_y2.label);
+        }
+
+        // add left axis
+        graph.svg.append("g")
+            .attr("class", "y axis axisLeft")
+            .attr("transform", "translate(0,0)")
             .append("text")
                 .attr("y", 6)
                 .attr("dy", "-2em")
-                .attr("dx", "2em")
                 .style("text-anchor", "end")
-                .text(graph.def.graphic.axis_y2.label);
+                .text(graph.def.graphic.axis_y1.label);
+
+        // theme grids
+        graph.svg.append("g")
+                .attr("class", "grid gridx")
+                .attr("transform", "translate(0," + height + ")");
+        graph.svg.append("g")
+                .attr("class", "grid gridy")
+                .attr("transform", "translate(0, 0)");
+
     }
-
-    // add left axis
-    graph.svg.append("g")
-        .attr("class", "y axis axisLeft")
-        .attr("transform", "translate(0,0)")
-        .append("text")
-            .attr("y", 6)
-            .attr("dy", "-2em")
-            .style("text-anchor", "end")
-            .text(graph.def.graphic.axis_y1.label);
-
-    // theme grids
-    graph.svg.append("g")
-            .attr("class", "grid gridx")
-            .attr("transform", "translate(0," + height + ")");
-    graph.svg.append("g")
-            .attr("class", "grid gridy")
-            .attr("transform", "translate(0, 0)");
 
     // Export button
     var exporter = graph.actions.append("button")
@@ -247,6 +259,7 @@ function initGraph( graph ) {
         graph.filters = {
             selector : graph.filterszone.select('select[name="nbelt"]'),
             pagecounter : graph.filterszone.select('input[name="page"]'),
+            datas : graph.filterszone.select('select[name="data"]'),
             sort : graph.filterszone.select('select[name="sort"]')
         }
 
@@ -261,10 +274,10 @@ function initGraph( graph ) {
         });
     }
 
-    initTable( graph );
+    initHtmlTable( graph );
 }
 
-function initTable( graph ) {
+function initHtmlTable( graph ) {
 
     if ( graph.tablezone.empty() ) return false;
 
@@ -295,20 +308,23 @@ function handleJsonData( data, graph ) {
     var tooltip_def = graph_def.tooltip;
     var rows = data.rows;
 
-    var y1_key = graph_def.axis_y1.key;
-    if ( graph_def.has_y2 ) {
-        var y2_key = graph_def.axis_y2.key;
+    if (graph_def['has_axis']) {
+        var y1_key = graph_def.axis_y1.key;
+        if ( graph_def.has_y2 ) {
+            var y2_key = graph_def.axis_y2.key;
+        }
+        var x_key = graph_def.axis_x.key;
     }
-    var x_key = graph_def.axis_x.key;
-
     var color = d3.scale.linear()
         .domain([0, 2])
         .range(["#aad", "#556"]);
 
-    graph.color = d3.scale.linear()
-        .range(["#333399", "red"]);
-
-
+    if (graph_def['tree']) {
+        graph.color = d3.scale.category20c();
+    } else {
+        graph.color = d3.scale.linear()
+            .range(["#333399", "red"]);
+    }
     // We may have some new datas, start by hiding the tooltip which may be active
     tooltip_div.transition()
             .duration(500)
@@ -352,36 +368,103 @@ function handleJsonData( data, graph ) {
     } else {
         if (graph_def.pivot) {
             // data is alreay pivoted
-            var stack = d3.layout.stack()
-                .values(function( layer ) {
+            console.log('kkkkkkkkkkkkk');
+            console.log(graph_def);
+            if (graph_def['tree']) {
+                // TreeMap
+                var treemap = d3.layout.treemap()
+                          .padding(4)
+                          .size([width, height])
+                          .value(function(d) {
+                               return d.full_size;
+                          });
 
-                    var l_values = [];
-                    layer.values.forEach( function( r ) {
-                        var title='', content='';
-                        tooltip_def.title.forEach(function(title_key) {
-                            if (''==title) {
-                                title = r[title_key];
-                            } else {
-                                title += ' ' + r[title_key];
-                            }
-                        });
-                        tooltip_def.content.forEach(function(infos) {
-                            content += '<br/>' + infos.legend + ': ' + r[infos.key];
-                        });
-                        r.tooltip = '<strong>' + title + '</strong>' + content;
-                        r.x = r[x_key]*1000;
-                        //r.y = r[y1_key];
-                        //r.y0 = 0;
-                        /*l_values.push([{
-                            x: r[x_key*1000],
-                            y: r[y1_key],
-                            tooltip: r.tooltip
-                        }]);*/
+            rows.forEach( function( r ) {
+
+                /* group tooltip */
+                r.tooltip = '<strong>' + r.name + '</strong>';
+                r.children = r.values;
+                /* subrectangles tooltips */
+                r.children.forEach( function( d ) {
+                    var title='', content='';
+                    tooltip_def.title.forEach(function(title_key) {
+                        if (''==title) {
+                            title = d[title_key];
+                        } else {
+                            title += ' ' + d[title_key];
+                        }
                     });
-                    return [l_values];
+                    tooltip_def.content.forEach(function(infos) {
+                        content += '<br/>' + infos.legend + ': ' + d[infos.key];
+                    });
+                    d.tooltip = '<strong>' + title + '</strong>' + content;
+                });
+                return r;
+            });
+
+
+            var cell = graph.svg.data([{'name': 'db', 'children': rows}]).selectAll("g")
+                .data(treemap.nodes)
+                .enter().append("g")
+                .attr("class", "cell")
+                .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+                .on("mouseover", function(d) { toolTiping(d)});
+
+            cell.append("rect")
+                .attr("width", function(d) { return d.dx; })
+                .attr("height", function(d) { return d.dy; })
+                .style("fill", function(d) { return d.children ? graph.color(d.name) : null; });
+
+            cell.append("text")
+                .attr("x", function(d) { return d.dx / 2; })
+                .attr("y", function(d) { return d.dy / 2; })
+                .attr("dy", ".35em")
+                .attr("text-anchor", "middle")
+                .text(function(d) { return d.children ? null : d.table; })
+                .style("opacity", function(d) {
+                    d.w = this.getComputedTextLength(); return d.dx > d.w ? 1 : 0;
                 });
 
-            var layers = stack(rows);
+                manageHtmlTable( data, graph );
+                console.log('exit');
+                return 0;
+
+                // END OF TREE MAP
+
+            } else {
+
+                // For RRD stack graphs for example
+                var stack = d3.layout.stack()
+                    .values(function( layer ) {
+
+                        var l_values = [];
+                        layer.values.forEach( function( r ) {
+                            var title='', content='';
+                            tooltip_def.title.forEach(function(title_key) {
+                                if (''==title) {
+                                    title = r[title_key];
+                                } else {
+                                    title += ' ' + r[title_key];
+                                }
+                            });
+                            tooltip_def.content.forEach(function(infos) {
+                                content += '<br/>' + infos.legend + ': ' + r[infos.key];
+                            });
+                            r.tooltip = '<strong>' + title + '</strong>' + content;
+                            r.x = r[x_key]*1000;
+                            //r.y = r[y1_key];
+                            //r.y0 = 0;
+                            /*l_values.push([{
+                                x: r[x_key*1000],
+                                y: r[y1_key],
+                                tooltip: r.tooltip
+                            }]);*/
+                        });
+                        return [l_values];
+                    });
+
+                var layers = stack(rows);
+            }
         } else {
             // single layer
             var layers = d3.layout.stack()(
@@ -400,7 +483,8 @@ function handleJsonData( data, graph ) {
             );
         }
     }
-console.log('LAYERS', layers.length, layers);
+
+    console.log('LAYERS', layers.length, layers);
     graph.color.domain([0, layers.length-1]);
 
     // Compute the x-domain and y-domain (by layer).
@@ -497,224 +581,233 @@ console.log('LAYERS', layers.length, layers);
 
     // Main data on graph
     if (graph_def.pivot) {
-
-        // Add a group for each layer.
-        var s_layers = graph.svg.selectAll("g.layer")
-            .data(layers);
-
-        // new layers
-        s_layers.enter()
-            .append("svg:g")
-            .attr("class", "layer")
-            .attr("transform", "translate(0,0)");
-
-        // extra layers
-        s_layers.exit()
-            .remove();
-
-        // Areas
-        var paths = graph.svg.selectAll("path.data-area-path")
-            .data(layers);
-
-        var lines = graph.svg.selectAll("path.data-line-path")
-            .data(layers);
-           /* .data( function(d) { console.log("another d", d); return d.values; });*/
-
-        console.log('paths', paths);
-
-        var area = d3.svg.area()
-         .x(function(d) { return graph.x(d.x); })
-         .y0(function(d) { return graph.yLeft(d.y0); })
-         .y1(function(d) { return graph.yLeft(d.y1); });
-
-        var lineFunc = d3.svg.line()
-            .x(function(d) { return graph.x(d.x); })
-            .y(function(d) {
-                return graph.yLeft(d.y);
-            })
-            .interpolate('linear');
-
-        paths.enter().append('path')
-            .attr("class", "data-area-path")
-            .attr("d", function(d) { return area(d.values); })
-            .style("fill", function(d,i) { return graph.color(i); })
-            .style("opacity", 0.5)
-            .append('title')
-            .text(function(d) { return d.name; });
-
-        paths.exit()
-            .remove();
-
-        paths.transition()
-            .duration(1000)
-            .delay(function(d, i) { return i * 10; })
-            .attr("d", function(d) { return area(d.values); });
-
-        lines.enter().append('path')
-            .attr("class", "data-line-path")
-            .attr("d", function(d) { return lineFunc(d.values); })
-            .attr('stroke', function(d,i) { return graph.color(i); })
-            .attr('stroke-width', 1)
-            .attr('fill', 'none')
-            .append('title')
-            .text(function(d) { return d.name; });
-
-        lines.exit()
-        .remove();
-
-        lines.transition()
-            .duration(1000)
-            .delay(function(d, i) { return i * 10; })
-            .attr("d", function(d) { return lineFunc(d.values); });
-
-        s_layers.each( function(d, i) {
-            //var s_layer = d3.select(layer_elt);
-            //console.log('each d', d, 'each elt', elt, 'each i', i);
-
-            var s_layer = d3.select(this);
-            console.log('each d', d, 'each elt', s_layer, 'each i', i);
-            var dots = s_layer.selectAll("circle.data-circle")
-                .data(d.values);
-
-            dots.enter().append("circle")
-                .attr("class", "data-circle")
-                .attr("r", 3)
-                .attr("cx", function(d) { return graph.x(d.x); })
-                .attr("cy", function(d) { return height; })
-                .style("fill", function(d,i) { return graph.color(i); })
-                .on("mouseover", function(d) { toolTiping(d)});
-
-            // remove extra dots
-            dots.exit()
-                .remove();
-
-            dots.transition()
-                .duration(1000)
-                .delay(function(d, i) { return i * 10; })
-                .attr("cx", function(d) { return graph.x(d.x); })
-                .attr("cy", function(d) { return graph.yLeft(d.y); })
-                .style("fill", function(d,i) { return graph.color(i); });
-        });
-
-
+        PutDataOnPivotHistoGraph(graph_def, layers, color, graph);
     } else {
-
-
-        // Add a group for each layer.
-        var s_layers = graph.svg.selectAll("g.layer")
-            .data(layers);
-
-        // new layers
-        s_layers.enter()
-            .append("svg:g")
-            .attr("class", "layer")
-            .attr("transform", "translate(0,0)")
-            .style("fill", function(d, i) {
-                return color(i);
-            })
-            .style("stroke", function(d, i) {
-                return d3.rgb(color(i)).darker();
-            });
-        // extra layers
-        s_layers.exit()
-            .remove();
-
-
-        // Add a rect for each X.
-        var rects = s_layers.selectAll("rect.data-rect")
-            .data(function(d) { return d; });
-
-        // new records
-        rects.enter().append("svg:rect")
-            .attr("class", "data-rect")
-            .attr("x", function(d) { return graph.x(d.x); })
-            .attr("width", 1)
-            .attr("y", height)
-            .attr("height",0)
-            .on("mouseover", function(d) { toolTiping(d)});
-
-        // extra records
-        rects.exit()
-          .transition()
-            .duration(1000)
-            .delay(function(d, i) { return i * 10; })
-            .attr("x", function(d) { return width; })
-            .attr("y",
-              function(d) {
-                return height; }
-            )
-            .attr("height",
-              function(d) { return -height; }
-            )
-            .attr("width", graph.x.rangeBand())
-            .remove();
-
-        // Update old ones and also init the new ones
-        rects.transition()
-            .duration(1000)
-            .delay(function(d, i) { return i * 10; })
-            .attr("x", function(d) { return graph.x(d.x); })
-            .attr("y",
-              function(d) {
-                return graph.yLeft(d.y0) -height + graph.yLeft(d.y); }
-            )
-            .attr("height",
-              function(d) { return height - graph.yLeft(d.y); }
-            )
-            .attr("width", graph.x.rangeBand());
+        PutDataOnHistoGraph(graph_def, layers, color, graph);
     }
 
     // Circle + line for Right Axis data
     if ( graph.def.graphic.has_y2 ) {
-        var dots = graph.svg.selectAll("circle.data-circle")
-            .data(rows);
+        PutCirclesAndLinesOnGraph(rows, x_key, y2_key, graph);
+    }
 
-        // append new dots
+    manageHtmlTable( data, graph );
+}
+
+function PutDataOnPutDataOnPivotHistoGraph(graph_def, layers, color, graph) {
+
+    // Add a group for each layer.
+    var s_layers = graph.svg.selectAll("g.layer")
+        .data(layers);
+
+    // new layers
+    s_layers.enter()
+        .append("svg:g")
+        .attr("class", "layer")
+        .attr("transform", "translate(0,0)");
+
+    // extra layers
+    s_layers.exit()
+        .remove();
+
+    // Areas
+    var paths = graph.svg.selectAll("path.data-area-path")
+        .data(layers);
+
+    var lines = graph.svg.selectAll("path.data-line-path")
+        .data(layers);
+    /* .data( function(d) { console.log("another d", d); return d.values; });*/
+
+    console.log('paths', paths);
+
+    var area = d3.svg.area()
+    .x(function(d) { return graph.x(d.x); })
+    .y0(function(d) { return graph.yLeft(d.y0); })
+    .y1(function(d) { return graph.yLeft(d.y1); });
+
+    var lineFunc = d3.svg.line()
+        .x(function(d) { return graph.x(d.x); })
+        .y(function(d) {
+            return graph.yLeft(d.y);
+        })
+        .interpolate('linear');
+
+    paths.enter().append('path')
+        .attr("class", "data-area-path")
+        .attr("d", function(d) { return area(d.values); })
+        .style("fill", function(d,i) { return graph.color(i); })
+        .style("opacity", 0.5)
+        .append('title')
+        .text(function(d) { return d.name; });
+
+    paths.exit()
+        .remove();
+
+    paths.transition()
+        .duration(1000)
+        .delay(function(d, i) { return i * 10; })
+        .attr("d", function(d) { return area(d.values); });
+
+    lines.enter().append('path')
+        .attr("class", "data-line-path")
+        .attr("d", function(d) { return lineFunc(d.values); })
+        .attr('stroke', function(d,i) { return graph.color(i); })
+        .attr('stroke-width', 1)
+        .attr('fill', 'none')
+        .append('title')
+        .text(function(d) { return d.name; });
+
+    lines.exit()
+    .remove();
+
+    lines.transition()
+        .duration(1000)
+        .delay(function(d, i) { return i * 10; })
+        .attr("d", function(d) { return lineFunc(d.values); });
+
+    s_layers.each( function(d, i) {
+        //var s_layer = d3.select(layer_elt);
+        // console.log('each d', d, 'each elt', elt, 'each i', i);
+
+        var s_layer = d3.select(this);
+        // console.log('each d', d, 'each elt', s_layer, 'each i', i);
+        var dots = s_layer.selectAll("circle.data-circle")
+            .data(d.values);
+
         dots.enter().append("circle")
             .attr("class", "data-circle")
-            .attr("r", 4)
-            .attr("cx", function(d) { return graph.x(d[x_key]) + graph.x.rangeBand()/2; })
+            .attr("r", 3)
+            .attr("cx", function(d) { return graph.x(d.x); })
             .attr("cy", function(d) { return height; })
-            .style("fill", 'red')
+            .style("fill", function(d,i) { return graph.color(i); })
             .on("mouseover", function(d) { toolTiping(d)});
+
         // remove extra dots
         dots.exit()
             .remove();
 
-        var lineFunc = d3.svg.line()
-            .x(function(d) { return graph.x(d[x_key])+ graph.x.rangeBand()/2; })
-            .y(function(d) {
-                return graph.yRight(d[y2_key]);
-            })
-            .interpolate('linear');
-
-        // remove existing lines
-        graph.svg.selectAll(".prod-graph-line").remove();
-
-        // Update circles and launch the line at the end
         dots.transition()
             .duration(1000)
             .delay(function(d, i) { return i * 10; })
-            .attr("cy", function(d) { return graph.yRight(d[y2_key]); })
-            .attr("cx", function(d) { return graph.x(d[x_key]) + graph.x.rangeBand()/2; })
-            .call(doneForAll, function() {
-                // draw the line only after end of circle moves
-                graph.svg.append('svg:path')
-                    .attr('class','prod-graph-line')
-                    .attr('d', lineFunc(rows))
-                    .attr('stroke', 'red')
-                    .attr('stroke-width', 1)
-                    .attr('fill', 'none');
-            });
-    }
+            .attr("cx", function(d) { return graph.x(d.x); })
+            .attr("cy", function(d) { return graph.yLeft(d.y); })
+            .style("fill", function(d,i) { return graph.color(i); });
+    });
+}
 
-    manageTable( data, graph );
+
+function PutDataOnHistoGraph(graph_def, layers, color, graph) {
+    // Add a group for each layer.
+    var s_layers = graph.svg.selectAll("g.layer")
+        .data(layers);
+
+    // new layers
+    s_layers.enter()
+        .append("svg:g")
+        .attr("class", "layer")
+        .attr("transform", "translate(0,0)")
+        .style("fill", function(d, i) {
+            return color(i);
+        })
+        .style("stroke", function(d, i) {
+            return d3.rgb(color(i)).darker();
+        });
+    // extra layers
+    s_layers.exit()
+        .remove();
+
+
+    // Add a rect for each X.
+    var rects = s_layers.selectAll("rect.data-rect")
+        .data(function(d) { return d; });
+
+    // new records
+    rects.enter().append("svg:rect")
+        .attr("class", "data-rect")
+        .attr("x", function(d) { return graph.x(d.x); })
+        .attr("width", 1)
+        .attr("y", height)
+        .attr("height",0)
+        .on("mouseover", function(d) { toolTiping(d)});
+
+    // extra records
+    rects.exit()
+        .transition()
+        .duration(1000)
+        .delay(function(d, i) { return i * 10; })
+        .attr("x", function(d) { return width; })
+        .attr("y",
+            function(d) {
+            return height; }
+        )
+        .attr("height",
+            function(d) { return -height; }
+        )
+        .attr("width", graph.x.rangeBand())
+        .remove();
+
+    // Update old ones and also init the new ones
+    rects.transition()
+        .duration(1000)
+        .delay(function(d, i) { return i * 10; })
+        .attr("x", function(d) { return graph.x(d.x); })
+        .attr("y",
+            function(d) {
+            return graph.yLeft(d.y0) -height + graph.yLeft(d.y); }
+        )
+        .attr("height",
+            function(d) { return height - graph.yLeft(d.y); }
+        )
+        .attr("width", graph.x.rangeBand());
+}
+
+function PutCirclesAndLinesOnGraph(rows, x_key, y2_key, graph) {
+    var dots = graph.svg.selectAll("circle.data-circle")
+        .data(rows);
+
+    // append new dots
+    dots.enter().append("circle")
+        .attr("class", "data-circle")
+        .attr("r", 4)
+        .attr("cx", function(d) { return graph.x(d[x_key]) + graph.x.rangeBand()/2; })
+        .attr("cy", function(d) { return height; })
+        .style("fill", 'red')
+        .on("mouseover", function(d) { toolTiping(d)});
+    // remove extra dots
+    dots.exit()
+        .remove();
+
+    var lineFunc = d3.svg.line()
+        .x(function(d) { return graph.x(d[x_key])+ graph.x.rangeBand()/2; })
+        .y(function(d) {
+            return graph.yRight(d[y2_key]);
+        })
+        .interpolate('linear');
+
+    // remove existing lines
+    graph.svg.selectAll(".prod-graph-line").remove();
+
+    // Update circles and launch the line at the end
+    dots.transition()
+        .duration(1000)
+        .delay(function(d, i) { return i * 10; })
+        .attr("cy", function(d) { return graph.yRight(d[y2_key]); })
+        .attr("cx", function(d) { return graph.x(d[x_key]) + graph.x.rangeBand()/2; })
+        .call(doneForAll, function() {
+            // draw the line only after end of circle moves
+            graph.svg.append('svg:path')
+                .attr('class','prod-graph-line')
+                .attr('d', lineFunc(rows))
+                .attr('stroke', 'red')
+                .attr('stroke-width', 1)
+                .attr('fill', 'none');
+        });
 }
 
 /**
  * Feed the HTML table with rows content
  */
-function manageTable( data, graph ) {
+function manageHtmlTable( data, graph ) {
 
     if ( graph.tablezone.empty() ) return false;
 
@@ -817,11 +910,18 @@ function loadSomeData( graph ) {
     var url = graph.def.graph_url + graph.def.graph_id + '?'
 
     if (! graph.filterszone.empty() ) {
-        url += "rows=" + graph.filters.selector.property('value')
-        + "&page="
-        + (parseInt(graph.filters.pagecounter.property('value'),10))
-        + "&sort="
-        + graph.filters.sort.property('value');
+        if (!graph.filters.selector.empty()) {
+            url += "&rows=" + graph.filters.selector.property('value');
+        }
+        if (!graph.filters.pagecounter.empty()) {
+            url += "&page=" + (parseInt(graph.filters.pagecounter.property('value'),10));
+        }
+        if (!graph.filters.sort.empty()) {
+            url += "&sort=" + graph.filters.sort.property('value');
+        }
+        if (!graph.filters.datas.empty()) {
+            url += "&data=" + graph.filters.datas.property('value');
+        }
     }
     d3.json(
         url
@@ -916,6 +1016,8 @@ jQuery('document').ready(function() {
 });
 
 </script>
+
+<?php echo render($prefix); ?>
 <div class="prod-stats-results">
     <?php foreach ($results as $key => $item): ?>
     <section class="stat-result-section" id="<?php echo $key; ?>" >

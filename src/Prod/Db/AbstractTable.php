@@ -467,6 +467,13 @@ abstract class AbstractTable extends ProdObject implements TableInterface, Stats
         }
 
         // get the record id
+        return $this->loadId();
+
+    }
+
+
+    public function loadId() {
+        // get the record id
         try {
             $result = db_select('prod_db_stats', 's')
                 ->fields('s',array('pdb_id'))
@@ -485,7 +492,6 @@ abstract class AbstractTable extends ProdObject implements TableInterface, Stats
         } catch (Exception $e) {
             throw new DbAnalyzerException(__METHOD__ . ": Unable to reload the table record. " . $e->getMessage());
         }
-
     }
 
     /**

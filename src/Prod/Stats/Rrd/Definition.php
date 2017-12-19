@@ -259,11 +259,15 @@ class Definition Extends ProdObject
      */
     public static function loadDefinitionsByProviders($task_id, $providers_ids) {
 
-        $results = db_select('prod_rrd_settings','s')
-            ->fields('s')
-            ->condition('ptq_stat_tid', $task_id, '=')
-            ->condition('prs_stat_pid', $providers_ids, 'IN')
-            ->execute();
+        if (count($providers_ids) > 0) {
+            $results = db_select('prod_rrd_settings','s')
+                ->fields('s')
+                ->condition('ptq_stat_tid', $task_id, '=')
+                ->condition('prs_stat_pid', $providers_ids, 'IN')
+                ->execute();
+        } else {
+            $results = array();
+        }
 
         $objects = array();
 

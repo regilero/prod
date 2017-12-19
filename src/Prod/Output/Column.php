@@ -364,6 +364,10 @@ class Column extends ProdObject
                     $out = format_interval(REQUEST_TIME - $out, 2);
                     break;
 
+                case 'bool':
+                    $out = ($out)? 'true' : 'false';
+                    break;
+
                 default:
                     throw new FormatterException(__METHOD__ . ' Unknown format filter: ' . $format );
             }

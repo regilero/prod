@@ -2,13 +2,13 @@
 
 namespace Drupal\Prod\Stats;
 
-use Drupal\Prod\ProdObject;
+use Drupal\Prod\ProdConfigurable;
 use Drupal\Prod\Stats\TaskInterface;
 
 /**
  * Statistic Collector's Task
  */
-class Task extends ProdObject implements TaskInterface
+class Task extends ProdConfigurable implements TaskInterface
 {
 
     protected $id;
@@ -46,7 +46,9 @@ class Task extends ProdObject implements TaskInterface
      */
     public function __construct()
     {
-        return $this->initHelpers();
+        $this->initHelpers();
+        $this->flagEnabled($this->config->get('enabled'));
+        return $this;
     }
 
     /**
@@ -262,5 +264,33 @@ class Task extends ProdObject implements TaskInterface
         }
 
         return (!empty($this->id));
+    }
+
+
+    /**
+     * return the list of StatsProviderInterface objects managed
+     */
+    /*public function getStatsProviders() {
+        return array($this);
+    }
+*/
+    public function getAdminForm() {
+        $form = array();
+        $form['enabled'] = array(
+            '#type' => 'checkbox',
+            '#title' => t('Enable'),
+            '#default_value' => $this->config->get('enabled', TRUE),
+            '#description' => t('Collector Enabled'),
+        );
+        return $form;
+    }
+
+    public function ValidateAdminForm($form, &$form_state, $section) {
+    }
+
+    public function SubmitAdminForm($form, &$form_state, $section) {
+        $enabled = $form_state['values'][$section . '_enabled'];
+        $this->flagEnabled($enabled);
+        $this->config->set('enabled', $enabled);
     }
 }

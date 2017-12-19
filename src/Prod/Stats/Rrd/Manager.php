@@ -132,9 +132,11 @@ class Manager extends ProdObject
      */
     protected function _preloadRrdDefinitions($stat_task_id)
     {
-        $results = Definition::loadDefinitionsByProviders($stat_task_id, $this->providers_id_list);
-        foreach ($results as $rrdDef) {
-            $this->_storeRRDDef($stat_task_id, $rrdDef);
+        if (count($this->providers_id_list) > 0) {
+            $results = Definition::loadDefinitionsByProviders($stat_task_id, $this->providers_id_list[$stat_task_id]);
+            foreach ($results as $rrdDef) {
+                $this->_storeRRDDef($stat_task_id, $rrdDef);
+            }
         }
     }
 
@@ -167,6 +169,17 @@ class Manager extends ProdObject
             $this->stats[$stat_task_id][$provider->getStatsProviderId()] = $provider->getStatsList();
 
         }
+
+    }
+
+    /**
+     * List all stats provided by our providers
+     * Use it only after they have beend loaded by loadMultipleProviders()
+     */
+    public function getProvidedStats()
+    {
+
+        return $this->stats;
 
     }
 

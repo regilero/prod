@@ -165,6 +165,17 @@ function prod_menu() {
     'weight' => 30,
     'type'             => MENU_LOCAL_TASK,
   );
+  $items['admin/config/prod/stats'] = array(
+    'title'            => 'Prod Stats',
+    'description'      => "Manage Prod module's individual stats",
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('prod_admin_page_conf_stats_form'),
+    'access arguments' => array('access prod module configuration'),
+    'file'             => 'prod.admin.inc',
+    'file path'        => drupal_get_path('module', 'prod'),
+    'weight' => 40,
+    'type'             => MENU_LOCAL_TASK,
+  );
 
   return $items;
 }
